@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "367421595104",
+    "project_id": "world-market-9774c",
+    "storage_bucket": "world-market-9774c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:367421595104:android:e48a076b5a6fbb3f091f85",
+        "android_client_info": {
+          "package_name": "com.example.market_world"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDujaPOxP5pEFDwK2pFiDZ0Ch6oJ-BQOqc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,0 +1,11 @@
+[
+  {
+    "origin": [
+      "https://world-market-9774c.web.app",
+      "https://world-market-9774c.firebaseapp.com"
+    ],
+    "method": ["GET", "HEAD"],
+    "responseHeader": ["Content-Type"],
+    "maxAgeSeconds": 3600
+  }
+]
