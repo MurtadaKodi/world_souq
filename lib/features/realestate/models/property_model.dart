@@ -97,15 +97,34 @@ class PropertyModel {
           : const [],
       lat: lat,
       lng: lng,
-      address: data['address']?.toString(), favoritesCount: _toDouble(data['favoritesCount'])?.toInt() ?? 0,
+      address: data['address']?.toString(), favoritesCount: (data['favoritesCount'] is int)
+    ? data['favoritesCount']
+    : int.tryParse(data['favoritesCount']?.toString() ?? '') ?? 0,
     );
   }
 
   get imageUrls => null;
 
-  toJson() {
-    return {
-      'favoritesCount': favoritesCount,
-    };
-  }
+  Map<String, dynamic> toJson() {
+  return {
+    'ownerId': ownerId,
+    'title': title,
+    'description': description,
+    'price': price,
+    'currency': currency,
+    'type': type,
+    'purpose': purpose,
+    'city': city,
+    'area': area,
+    'mediaPaths': mediaPaths,
+    'mainImage': mainImage,
+    'createdAt': createdAt ?? FieldValue.serverTimestamp(),
+    'updatedAt': FieldValue.serverTimestamp(),
+    'searchKeywords': searchKeywords,
+    'lat': lat,
+    'lng': lng,
+    'address': address,
+    'favoritesCount': favoritesCount,
+  };
+}
 }

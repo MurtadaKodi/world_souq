@@ -29,15 +29,18 @@ class _LandlordBottomNavState extends State<LandlordBottomNav> {
     // ⭐ فتح صفحة تفاصيل الحجز تلقائيًا
     if (widget.openBookingId != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => BookingDetailsPage(
-              bookingId: widget.openBookingId!,
-              isLandlord: true,
-            ),
-          ),
-        );
+       if (widget.openBookingId != null) {
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => BookingDetailsPage(
+        bookingId: widget.openBookingId!,
+        isLandlord: true,
+      ),
+    );
+  });
+}
       });
     }
   }

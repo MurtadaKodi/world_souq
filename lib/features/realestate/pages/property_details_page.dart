@@ -6,15 +6,13 @@ import 'package:flutter/material.dart';
 import 'package:market_world/features/realestate/models/property_model.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:market_world/features/realestate/services/favorites_service.dart';
-import 'package:market_world/features/realestate/widgets/google_map.dart';
 import 'package:market_world/features/storage/firebase_storage_service.dart';
-import 'package:flutter/foundation.dart';
+
 
 class PropertyDetailsFullScreen extends StatefulWidget {
   final PropertyModel property;
   final VoidCallback? onNavigate;
   final VoidCallback onClose;
-
   final VoidCallback onBook;
 
   const PropertyDetailsFullScreen({
@@ -31,13 +29,16 @@ class PropertyDetailsFullScreen extends StatefulWidget {
 }
 
 class _PropertyDetailsFullScreenState extends State<PropertyDetailsFullScreen> {
+  List<String> _resolvedImages = [];
+  bool _loadingImages = true;
   final FavoritesService _favoritesService = FavoritesService();
   final PageController _controller = PageController();
   final FirebaseStorageService _storageService = FirebaseStorageService();
-
+  late final Set<Polyline> polylines;
+  final Set<Circle> circles = {};
   String? _distanceText;
   LatLng? _userLatLng;
-  Set<Polyline> _polylines = {};
+
   int _currentIndex = 0;
   double _dragOffset = 0;
   final double _dragThreshold = 120; // مقدار السحب للإغلاق
@@ -46,6 +47,7 @@ class _PropertyDetailsFullScreenState extends State<PropertyDetailsFullScreen> {
   void initState() {
     super.initState();
     _initLocationData();
+    _loadImages(); // 👈 جديد
   }
 
   List<String> get _images {
@@ -68,6 +70,20 @@ class _PropertyDetailsFullScreenState extends State<PropertyDetailsFullScreen> {
   }
 
   // ignore: unused_element
+  Future<void> _loadImages() async {
+    final images = _images;
+
+    final urls = await Future.wait(
+      images.map((e) => _storageService.resolveDownloadUrl(e)),
+    );
+
+    setState(() {
+      _resolvedImages = urls;
+      _loadingImages = false;
+    });
+  }
+
+  // ignore: unused_element
   Future<void> _loadRoutePreview() async {
     if (widget.property.lat == null || widget.property.lng == null) {
       return;
@@ -82,7 +98,7 @@ class _PropertyDetailsFullScreenState extends State<PropertyDetailsFullScreen> {
 
       setState(() {
         _userLatLng = user;
-        _polylines = {
+        polylines = {
           Polyline(
             polylineId: const PolylineId('route'),
             points: [user, property],
@@ -118,7 +134,7 @@ class _PropertyDetailsFullScreenState extends State<PropertyDetailsFullScreen> {
             ? '${distanceInMeters.toStringAsFixed(0)} متر'
             : '${km.toStringAsFixed(1)} كم';
 
-        _polylines = {
+        polylines = {
           Polyline(
             polylineId: const PolylineId('route'),
             points: [user, property],
@@ -130,6 +146,7 @@ class _PropertyDetailsFullScreenState extends State<PropertyDetailsFullScreen> {
     } catch (_) {}
   }
 
+  // ignore: unused_element
   GestureTapCallback? get _shareProperty => null;
 
   // // ignore: unused_field
@@ -187,133 +204,82 @@ class _PropertyDetailsFullScreenState extends State<PropertyDetailsFullScreen> {
               /// CONTENT
               /// =========================
               SafeArea(
-                child: Column(
-                  children: [
-                    /// IMAGE CAROUSEL
-                    SizedBox(
-                      height: 280,
-                      child: Stack(
-                        alignment: Alignment.bottomCenter,
-                        children: [
-                          Positioned(
-                            bottom: 20,
-                            left: 50,
-                            right: 50,
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                // ❤️ Favorite
-                                StreamBuilder<bool>(
-                                  stream: _favoritesService
-                                      .isFavorite(widget.property.id),
-                                  builder: (context, snapshot) {
-                                    final isFav = snapshot.data ?? false;
+                  child: CustomScrollView(
+                slivers: [
+                  /// ================= IMAGE (PARALLAX) =================
+                  SliverAppBar(
+                    expandedHeight: 320,
+                    pinned: true,
+                    backgroundColor: Colors.black,
+                    leading: const SizedBox(), // نستخدم زرنا الخاص
 
-                                    return GestureDetector(
-                                      onTap: () async {
-                                        if (isFav) {
-                                          await _favoritesService
-                                              .removeFromFavorites(
-                                                  widget.property.id);
-                                        } else {
-                                          await _favoritesService
-                                              .addToFavorites(
-                                                  widget.property.id);
-                                        }
-                                      },
-                                      child: AnimatedContainer(
-                                        duration:
-                                            const Duration(milliseconds: 250),
-                                        padding: const EdgeInsets.all(10),
-                                        decoration: BoxDecoration(
-                                          color: Colors.white.withOpacity(0.9),
-                                          shape: BoxShape.circle,
-                                        ),
-                                        child: AnimatedSwitcher(
-                                          duration:
-                                              const Duration(milliseconds: 250),
-                                          transitionBuilder:
-                                              (child, animation) {
-                                            return ScaleTransition(
-                                              scale: CurvedAnimation(
-                                                parent: animation,
-                                                curve: Curves.easeOutBack,
-                                              ),
-                                              child: child,
-                                            );
-                                          },
-                                          child: Icon(
-                                            isFav
-                                                ? Icons.favorite
-                                                : Icons.favorite_border,
-                                            key: ValueKey(isFav),
-                                            color: isFav
-                                                ? Colors.red
-                                                : Colors.black,
+                    flexibleSpace: FlexibleSpaceBar(
+                      background: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          /// IMAGE SLIDER
+                          _loadingImages
+                              ? const Center(child: CircularProgressIndicator())
+                              : PageView.builder(
+                                  controller: _controller,
+                                  itemCount: _resolvedImages.length,
+                                  physics:
+                                      const NeverScrollableScrollPhysics(), // 🔥 يسمح بالسحب مهم جداً
+                                  onPageChanged: (i) =>
+                                      setState(() => _currentIndex = i),
+                                  itemBuilder: (_, index) {
+                                    final image = _resolvedImages[index];
+
+                                    return Stack(
+                                      fit: StackFit.expand,
+                                      children: [
+                                        /// 🖼️ IMAGE
+                                        Hero(
+                                          tag: image,
+                                          child: Image.network(
+                                            image,
+                                            fit: BoxFit.cover,
                                           ),
                                         ),
-                                      ),
+
+                                        /// 🔍 BUTTON (الحل الاحترافي)
+                                        Positioned(
+                                          right: 16,
+                                          bottom: 16,
+                                          child: GestureDetector(
+                                            onTap: () {
+                                              Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (_) =>
+                                                      FullScreenGallery(
+                                                    images: _resolvedImages,
+                                                    initialIndex: index,
+                                                  ),
+                                                ),
+                                              );
+                                            },
+                                            child: Container(
+                                              padding: const EdgeInsets.all(10),
+                                              decoration: BoxDecoration(
+                                                color: Colors.black
+                                                    .withOpacity(0.6),
+                                                shape: BoxShape.circle,
+                                              ),
+                                              child: const Icon(
+                                                Icons.fullscreen,
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     );
                                   },
                                 ),
 
-                                // 🔗 Share
-                                GestureDetector(
-                                  onTap: _shareProperty,
-                                  child: Container(
-                                    padding: const EdgeInsets.all(10),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white.withOpacity(0.9),
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: const Icon(Icons.share),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          SizedBox(
-                            height: 340,
-                            child: PageView.builder(
-                              controller: _controller,
-                              itemCount: _images.length,
-                              onPageChanged: (i) =>
-                                  setState(() => _currentIndex = i),
-                              itemBuilder: (_, index) {
-                                final path = _images[index];
-
-                                return FutureBuilder<String>(
-                                  future:
-                                      _storageService.resolveDownloadUrl(path),
-                                  builder: (context, snapshot) {
-                                    if (!snapshot.hasData) {
-                                      return const Center(
-                                        child: CircularProgressIndicator(),
-                                      );
-                                    }
-
-                                    final downloadUrl = snapshot.data!;
-
-                                    return Hero(
-                                      tag: downloadUrl,
-                                      child: Image.network(
-                                        downloadUrl,
-                                        fit: BoxFit.cover,
-                                        width: double.infinity,
-                                        errorBuilder: (_, __, ___) =>
-                                            const Center(
-                                                child: Icon(Icons.error)),
-                                      ),
-                                    );
-                                  },
-                                );
-                              },
-                            ),
-                          ),
-
-                          /// Gradient Overlay
+                          /// GRADIENT
                           Container(
-                            height: 100,
                             decoration: const BoxDecoration(
                               gradient: LinearGradient(
                                 begin: Alignment.bottomCenter,
@@ -326,196 +292,161 @@ class _PropertyDetailsFullScreenState extends State<PropertyDetailsFullScreen> {
                             ),
                           ),
 
-                          /// Dots
+                          /// TITLE (يظهر مع collapse)
                           Positioned(
-                            bottom: 15,
+                            bottom: 20,
+                            left: 20,
+                            right: 20,
+                            child: Text(
+                              widget.property.title,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+
+                          /// FAVORITE + SHARE
+                          Positioned(
+                            top: 60,
+                            left: 20,
+                            right: 20,
                             child: Row(
-                              children: List.generate(
-                                _images.length,
-                                (index) => AnimatedContainer(
-                                  duration: const Duration(milliseconds: 300),
-                                  margin:
-                                      const EdgeInsets.symmetric(horizontal: 4),
-                                  width: _currentIndex == index ? 18 : 8,
-                                  height: 8,
-                                  decoration: BoxDecoration(
-                                    color: _currentIndex == index
-                                        ? Colors.white
-                                        : Colors.white54,
-                                    borderRadius: BorderRadius.circular(8),
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                /// BACK
+                                GestureDetector(
+                                  onTap: () => Navigator.pop(context),
+                                  child: const CircleAvatar(
+                                    backgroundColor: Colors.black54,
+                                    child: Icon(Icons.arrow_back,
+                                        color: Colors.white),
                                   ),
                                 ),
-                              ),
+
+                                Row(
+                                  children: [
+                                    StreamBuilder<bool>(
+                                      stream: _favoritesService
+                                          .isFavorite(widget.property.id),
+                                      builder: (context, snapshot) {
+                                        final isFav = snapshot.data ?? false;
+
+                                        return GestureDetector(
+                                          onTap: () async {
+                                            if (isFav) {
+                                              await _favoritesService
+                                                  .removeFromFavorites(
+                                                      widget.property.id);
+                                            } else {
+                                              await _favoritesService
+                                                  .addToFavorites(
+                                                      widget.property.id);
+                                            }
+                                          },
+                                          child: Container(
+                                            padding: const EdgeInsets.all(10),
+                                            decoration: BoxDecoration(
+                                              color:
+                                                  Colors.white.withOpacity(0.9),
+                                              shape: BoxShape.circle,
+                                            ),
+                                            child: Icon(
+                                              isFav
+                                                  ? Icons.favorite
+                                                  : Icons.favorite_border,
+                                              color: isFav
+                                                  ? Colors.red
+                                                  : Colors.black,
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    ),
+
+                                    /// FAVORITE (نفس كودك)
+                                    // انسخ نفس StreamBuilder هنا
+
+                                    const SizedBox(width: 10),
+
+                                    /// SHARE
+                                    Container(
+                                      padding: const EdgeInsets.all(10),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withOpacity(0.9),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(Icons.share),
+                                    ),
+                                  ],
+                                ),
+                              ],
                             ),
                           ),
                         ],
                       ),
                     ),
+                  ),
 
-                    /// DETAILS
-                    Expanded(
-                      child: Container(
-                        padding: const EdgeInsets.all(20),
-                        decoration: const BoxDecoration(
-                          color: Colors.white,
-                          borderRadius:
-                              BorderRadius.vertical(top: Radius.circular(28)),
-                        ),
-                        child: SingleChildScrollView(
-                          padding: const EdgeInsets.only(bottom: 100),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                widget.property.title,
-                                style: const TextStyle(
-                                    fontSize: 22, fontWeight: FontWeight.bold),
-                              ),
-                              const SizedBox(height: 6),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    '${widget.property.price.toStringAsFixed(0)} ${widget.property.currency}',
-                                    style: const TextStyle(
-                                        fontSize: 18, color: Colors.redAccent),
-                                  ),
-                                  const SizedBox(height: 6),
-                                  _distanceText != null
-                                      ? Row(
-                                          children: [
-                                            const Icon(
-                                              Icons.location_on,
-                                              size: 16,
-                                              color: Colors.blue,
-                                            ),
-                                            const SizedBox(width: 4),
-                                            Text(
-                                              'يبعد $_distanceText عنك',
-                                              style: const TextStyle(
-                                                fontSize: 13,
-                                                color: Colors.blue,
-                                                fontWeight: FontWeight.w500,
-                                              ),
-                                            ),
-                                          ],
-                                        )
-                                      : const SizedBox.shrink(),
-                                ],
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                '${widget.property.city} - ${widget.property.area}',
-                                style: const TextStyle(
-                                    fontSize: 14, color: Colors.grey),
-                              ),
-                              const SizedBox(height: 14),
-                              const Text(
-                                'الوصف',
-                                style: TextStyle(fontWeight: FontWeight.bold),
-                              ),
-                              const SizedBox(height: 6),
-                              Text(widget.property.description),
-                              const SizedBox(height: 24),
-                              if (!kIsWeb &&
-                                  widget.property.lat != null &&
-                                  widget.property.lng != null) ...[
-                                const Text(
-                                  'الموقع',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
-                                  ),
-                                ),
-                                const SizedBox(height: 10),
-                                ClipRRect(
-                                  borderRadius: BorderRadius.circular(16),
-                                  child: SizedBox(
-                                    height: 180,
-                                    child: Stack(
-                                      children: [
-                                        const SizedBox(height: 24),
-
-                                        if (widget.property.lat != null &&
-                                            widget.property.lng != null) ...[
-                                          const Text(
-                                            'الاتجاه إلى الموقع',
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 16,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 10),
-                                          ClipRRect(
-                                            borderRadius:
-                                                BorderRadius.circular(16),
-                                            child: SizedBox(
-                                              height: 180,
-                                              child: Stack(
-                                                children: [
-                                                  // Google Map
-                                                  PropertyGoogleMap(
-                                                    initialCameraPosition:
-                                                        CameraPosition(
-                                                      target: LatLng(
-                                                          widget.property.lat!,
-                                                          widget.property.lng!),
-                                                      zoom: 15,
-                                                    ),
-                                                    property: widget.property,
-                                                    userLatLng: _userLatLng,
-                                                    polylines: _polylines,
-                                                  ),
-                                                  Positioned.fill(
-                                                    child: GestureDetector(
-                                                      onTap: widget.onNavigate,
-                                                      child: Container(
-                                                        color:
-                                                            Colors.transparent,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-
-                                        // 👇 طبقة شفافة للضغط
-                                        Positioned.fill(
-                                          child: GestureDetector(
-                                            onTap: widget.onNavigate,
-                                            child: Container(
-                                                color: Colors.transparent),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ],
-                              const SizedBox(height: 30),
-                            ],
+                  /// ================= DETAILS =================
+                  SliverToBoxAdapter(
+                    child: Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        borderRadius:
+                            BorderRadius.vertical(top: Radius.circular(28)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          /// PRICE
+                          Text(
+                            '${widget.property.price.toStringAsFixed(0)} ${widget.property.currency}',
+                            style: const TextStyle(
+                                fontSize: 20, color: Colors.redAccent),
                           ),
-                        ),
+
+                          const SizedBox(height: 10),
+
+                          /// DISTANCE
+                          if (_distanceText != null)
+                            Text(
+                              'يبعد $_distanceText عنك',
+                              style: const TextStyle(color: Colors.blue),
+                            ),
+
+                          const SizedBox(height: 10),
+
+                          /// LOCATION
+                          Text(
+                            '${widget.property.city} - ${widget.property.area}',
+                            style: const TextStyle(color: Colors.grey),
+                          ),
+
+                          const SizedBox(height: 20),
+
+                          /// DESCRIPTION
+                          const Text(
+                            'الوصف',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(widget.property.description),
+
+                          const SizedBox(height: 30),
+
+                          /// MINI MAP (نضيفه في الخطوة القادمة 👇)
+                        ],
                       ),
                     ),
-                  ],
-                ),
-              ),
+                  ),
+                ],
+              )),
 
               /// CLOSE BUTTON
-              Positioned(
-                top: 40,
-                right: 20,
-                child: GestureDetector(
-                  onTap: () => Navigator.pop(context),
-                  child: const CircleAvatar(
-                    backgroundColor: Colors.black54,
-                    child: Icon(Icons.close, color: Colors.white),
-                  ),
-                ),
-              ),
+
               Positioned(
                 bottom: 0,
                 left: 0,
@@ -593,13 +524,202 @@ class _PropertyDetailsFullScreenState extends State<PropertyDetailsFullScreen> {
   }
 }
 
-class FullScreenImageViewer extends StatelessWidget {
-  final String imageUrl;
+class _FavoriteButton extends StatelessWidget {
+  final String propertyId;
+  final FavoritesService service;
 
-  const FullScreenImageViewer({
-    super.key,
-    required this.imageUrl,
+  const _FavoriteButton({
+    required this.propertyId,
+    required this.service,
   });
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<bool>(
+      stream: service.isFavorite(propertyId),
+      builder: (_, snapshot) {
+        final isFav = snapshot.data ?? false;
+
+        return _CircleButton(
+          icon: isFav ? Icons.favorite : Icons.favorite_border,
+          onTap: () {
+            isFav
+                ? service.removeFromFavorites(propertyId)
+                : service.addToFavorites(propertyId);
+          },
+        );
+      },
+    );
+  }
+}
+
+class _CircleButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback? onTap;
+
+  const _CircleButton({required this.icon, this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: CircleAvatar(
+        backgroundColor: Colors.black54,
+        child: Icon(icon, color: Colors.white),
+      ),
+    );
+  }
+}
+
+// ignore: unused_element
+class _HeaderSliver extends StatelessWidget {
+  final List<String> images;
+  final bool loading;
+  final PageController controller;
+  final int currentIndex;
+  final Function(int) onPageChanged;
+  final PropertyModel property;
+  final FavoritesService favoritesService;
+
+  const _HeaderSliver({
+    required this.images,
+    required this.loading,
+    required this.controller,
+    required this.currentIndex,
+    required this.onPageChanged,
+    required this.property,
+    required this.favoritesService,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SliverAppBar(
+      expandedHeight: 320,
+      pinned: true,
+      backgroundColor: Colors.black,
+      flexibleSpace: FlexibleSpaceBar(
+        background: Stack(
+          fit: StackFit.expand,
+          children: [
+            /// IMAGES
+            loading
+                ? const Center(child: CircularProgressIndicator())
+                : PageView.builder(
+                    physics: const BouncingScrollPhysics(),
+                    controller: controller,
+                    itemCount: images.length,
+                    onPageChanged: onPageChanged,
+                    itemBuilder: (_, index) {
+                      final image = images[index];
+
+                      return GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => FullScreenGallery(
+                                images: images,
+                                initialIndex: index,
+                              ),
+                            ),
+                          );
+                        },
+                        child: Hero(
+                          tag: image,
+                          child: Image.network(
+                            image,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+
+            /// GRADIENT
+            Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.bottomCenter,
+                  end: Alignment.topCenter,
+                  colors: [Colors.black54, Colors.transparent],
+                ),
+              ),
+            ),
+
+            /// TOP ACTIONS
+            Positioned(
+              top: 60,
+              left: 20,
+              right: 20,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _CircleButton(
+                    icon: Icons.arrow_back,
+                    onTap: () => Navigator.pop(context),
+                  ),
+                  Row(
+                    children: [
+                      _FavoriteButton(
+                        propertyId: property.id,
+                        service: favoritesService,
+                      ),
+                      const SizedBox(width: 10),
+                      const _CircleButton(icon: Icons.share),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+            /// DOTS
+            Positioned(
+              bottom: 10,
+              child: Row(
+                children: List.generate(
+                  images.length,
+                  (i) => AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    margin: const EdgeInsets.symmetric(horizontal: 4),
+                    width: currentIndex == i ? 24 : 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: currentIndex == i ? Colors.white : Colors.white54,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class FullScreenGallery extends StatefulWidget {
+  final List<String> images;
+  final int initialIndex;
+
+  const FullScreenGallery({
+    super.key,
+    required this.images,
+    required this.initialIndex,
+  });
+
+  @override
+  State<FullScreenGallery> createState() => _FullScreenGalleryState();
+}
+
+class _FullScreenGalleryState extends State<FullScreenGallery> {
+  late PageController _controller;
+
+  @override
+  void initState() {
+    _controller = PageController(initialPage: widget.initialIndex);
+    super.initState();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -607,19 +727,26 @@ class FullScreenImageViewer extends StatelessWidget {
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          Center(
-            child: Hero(
-              tag: imageUrl,
-              child: InteractiveViewer(
+          PageView.builder(
+            controller: _controller,
+            itemCount: widget.images.length,
+            itemBuilder: (_, index) {
+              final image = widget.images[index];
+
+              return InteractiveViewer(
                 minScale: 1,
                 maxScale: 4,
-                child: Image.network(
-                  imageUrl,
-                  fit: BoxFit.contain,
+                child: Center(
+                  child: Hero(
+                    tag: image,
+                    child: Image.network(image),
+                  ),
                 ),
-              ),
-            ),
+              );
+            },
           ),
+
+          /// CLOSE
           Positioned(
             top: 40,
             right: 20,

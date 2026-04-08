@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:market_world/features/realestate/pages/properties_map_page.dart';
 import '../services/booking_service.dart';
 import '../models/booking_model.dart';
-import 'property_map_page.dart';
+
 
 class BookingsPage extends StatelessWidget {
   final bool? isLandlord;
@@ -34,10 +35,6 @@ class BookingsPage extends StatelessWidget {
             return const Center(child: CircularProgressIndicator());
           }
 
-          if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(child: Text('لا توجد حجوزات'));
-          }
-
           final items = snapshot.data!;
 
           return ListView.builder(
@@ -52,17 +49,15 @@ class BookingsPage extends StatelessWidget {
                     '${b.visitDate.day}/${b.visitDate.month} • ${b.visitTime}',
                   ),
                   onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => PropertiesMapPage(
-                          focusPropertyId: b.propertyId,
-                          focusDate: b.visitDate,
-                          focusTime: b.visitTime,
-                        ),
-                      ),
-                    );
-                  },
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (_) => PropertiesMapPage(
+        focusPropertyId: b.propertyId,
+      ),
+    ),
+  );
+},
                 ),
               );
             },

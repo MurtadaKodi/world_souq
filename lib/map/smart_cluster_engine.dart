@@ -10,22 +10,27 @@ class SmartCluster {
     required this.properties,
   });
 }
+bool isHeatmap(double zoom) => zoom < 9;
+bool isCluster(double zoom) => zoom >= 9 && zoom < 15;
+bool isIndividual(double zoom) => zoom >= 15;
 
 double getGridSize(double zoom) {
-  if (zoom < 10) return 0.08;
-  if (zoom < 13) return 0.04;
-  if (zoom < 15) return 0.02;
+  if (zoom < 9) return 0.1;   // Heatmap zone
+  if (zoom < 11) return 0.06;
+  if (zoom < 13) return 0.03;
+  if (zoom < 15) return 0.015;
   return 0.0; // individual mode
 }
 
 List<SmartCluster> generateClusters(
+  
   List<PropertyModel> properties,
   double zoom,
 ) {
   final gridSize = getGridSize(zoom);
 
   // 🟢 Individual mode (zoom قريب)
-  if (gridSize == 0) {
+  if (properties.isEmpty || gridSize == 0.0) {
     return properties
         .where((p) => p.lat != null && p.lng != null)
         .map((p) => SmartCluster(

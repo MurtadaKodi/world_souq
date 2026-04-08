@@ -130,8 +130,8 @@ class _EntryGatePageState extends State<EntryGatePage>
                     child: IntrinsicHeight(
                       child: Center(
                           child: ConstrainedBox(
-                              constraints: BoxConstraints(maxWidth: 520),
-                              child: Column())),
+                              constraints: const BoxConstraints(maxWidth: 520),
+                              child: const Column())),
                     ),
                   ),
                 );
@@ -141,7 +141,7 @@ class _EntryGatePageState extends State<EntryGatePage>
           SafeArea(
             child: Center(
               child: ConstrainedBox(
-                constraints: BoxConstraints(maxWidth: 520),
+                constraints: const BoxConstraints(maxWidth: 520),
                 child: Column(
                   children: [
                     // Align(
@@ -170,7 +170,7 @@ class _EntryGatePageState extends State<EntryGatePage>
                     /// 📅 DATE (optional)
                     Center(
                       child: ConstrainedBox(
-                        constraints: BoxConstraints(maxWidth: 520),
+                        constraints: const BoxConstraints(maxWidth: 520),
                         child: Column(
                           children: [
 /// ⏰ Dynamic Date & Time
@@ -191,7 +191,7 @@ SizedBox(height: isSmall ? 20 : 40),
                         position: slideAnim,
                         child: Center(
                           child: ConstrainedBox(
-                            constraints: BoxConstraints(maxWidth: 520),
+                            constraints: const BoxConstraints(maxWidth: 520),
                             child: Column(
                               children: [
                                 /// 🌍 LOGO
@@ -355,7 +355,7 @@ class AnimatedTopWaveClipper extends CustomClipper<Path> {
     final path = Path();
     path.lineTo(0, size.height - 60);
 
-    final waveHeight = 20;
+    const waveHeight = 20;
     final waveLength = size.width;
 
     path.quadraticBezierTo(

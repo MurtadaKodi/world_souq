@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../pages/properties_list_page.dart';
 import '../pages/bookings_page.dart';
-import '../pages/property_map_page.dart';
+import '../pages/properties_map_page.dart';
 import '../../shared_pages/profile_page.dart';
 import '../pages/booking_details_page.dart';
 
@@ -33,15 +33,18 @@ class _TenantBottomNavState extends State<TenantBottomNav> {
     // ⭐ فتح تفاصيل الحجز مباشرة إذا وُجد
     if (widget.openBookingId != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => BookingDetailsPage(
-              bookingId: widget.openBookingId!,
-              isLandlord: false,
-            ),
-          ),
-        );
+       if (widget.openBookingId != null) {
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => BookingDetailsPage(
+        bookingId: widget.openBookingId!,
+        isLandlord: false,
+      ),
+    );
+  });
+}
       });
     }
   }

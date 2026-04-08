@@ -30,6 +30,7 @@ class LandlordDashboardPage extends StatelessWidget {
         onPressed: () {
           Navigator.push(
             context,
+            // ignore: prefer_const_constructors
             MaterialPageRoute(builder: (_) => PropertyFormPage()),
           );
         },
