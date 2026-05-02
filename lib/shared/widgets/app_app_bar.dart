@@ -4,18 +4,17 @@ import 'package:provider/provider.dart';
 
 
 class AppAppBar extends StatelessWidget implements PreferredSizeWidget {
-  final String title;
-  final bool showBack;
-  final bool isAdmin;
-  final VoidCallback? onBack;
 
   const AppAppBar({
-    super.key,
-    required this.title,
+    required this.title, super.key,
     this.showBack = true,
     this.isAdmin = false,
     this.onBack,
   });
+  final String title;
+  final bool showBack;
+  final bool isAdmin;
+  final VoidCallback? onBack;
 
   @override
   Widget build(BuildContext context) {
@@ -35,9 +34,7 @@ class AppAppBar extends StatelessWidget implements PreferredSizeWidget {
       centerTitle: true,
       actions: [
         IconButton(
-          onPressed: () {
-            lang.toggleLanguage();
-          },
+          onPressed: lang.toggleLanguage,
           icon: Row(
             mainAxisSize: MainAxisSize.min,
             children: [

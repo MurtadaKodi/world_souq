@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
-import 'app_colors.dart';
+import 'package:market_world/core/theme/app_colors.dart';
 
 class AppTheme {
+  static const _fontFamily = 'NotoSansArabic';
+
   static ThemeData light() {
     final base = ThemeData(
       useMaterial3: true,
       colorSchemeSeed: AppColors.primary,
       scaffoldBackgroundColor: AppColors.surface,
+      fontFamily: _fontFamily,
     );
 
     return base.copyWith(
@@ -22,12 +25,15 @@ class AppTheme {
   }
 
   static ThemeData dark() {
-    final base = ThemeData.dark(useMaterial3: true).copyWith(
+    final base = ThemeData(
+      brightness: Brightness.dark,
+      useMaterial3: true,
       colorScheme: ColorScheme.fromSeed(
         seedColor: AppColors.primary,
         brightness: Brightness.dark,
       ),
       scaffoldBackgroundColor: AppColors.surface,
+      fontFamily: _fontFamily,
       appBarTheme: const AppBarTheme(centerTitle: true),
       inputDecorationTheme: InputDecorationTheme(
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),

@@ -12,7 +12,7 @@ class StorageService {
     required XFile file,
   }) async {
     try {
-      final String safeFileName =
+      final safeFileName =
           '${DateTime.now().millisecondsSinceEpoch}_${file.name.replaceAll(' ', '_')}';
 
       final ref = _storage

@@ -29,9 +29,9 @@ class ReverseGeocodingService {
 
       if (res.statusCode != 200) return null;
 
-      final data = json.decode(res.body);
+      final data = json.decode(res.body) as Map<String, dynamic>;
 
-      return data['display_name'];
+      return data['display_name'] as String?;
     } catch (e) {
       debugPrint('Reverse geocoding failed: $e');
       return null;

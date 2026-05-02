@@ -3,14 +3,12 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
 class PropertyMap extends StatelessWidget {
-  final double lat;
-  final double lng;
 
   const PropertyMap({
-    super.key,
-    required this.lat,
-    required this.lng,
+    required this.lat, required this.lng, super.key,
   });
+  final double lat;
+  final double lng;
 // Removed mutable field 'selectedPropertyId' to ensure immutability.
 
   @override

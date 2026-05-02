@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
 
 double getClusterSize(int count) {
@@ -13,16 +15,13 @@ Color getClusterColor(int count) {
 }
 
 class ClusterBubbleWidget extends StatefulWidget {
+
+  const ClusterBubbleWidget({
+    required this.count, required this.highlight, required this.zoom, super.key,
+  });
   final int count;
   final bool highlight;
   final double zoom;
-
-  const ClusterBubbleWidget({
-    super.key,
-    required this.count,
-    required this.highlight,
-    required this.zoom,
-  });
 
   @override
   State<ClusterBubbleWidget> createState() => _ClusterBubbleWidgetState();
@@ -92,7 +91,7 @@ class _ClusterBubbleWidgetState extends State<ClusterBubbleWidget>
   double _calculateZoomScale(double zoom) {
     if (zoom < 9) return 0.8;
     if (zoom < 11) return 0.9;
-    if (zoom < 13) return 1.0;
+    if (zoom < 13) return 1;
     if (zoom < 15) return 1.1;
     return 1.2;
   }

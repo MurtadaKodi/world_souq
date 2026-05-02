@@ -1,13 +1,10 @@
-// ignore_for_file: deprecated_member_use
+// ignore_for_file: inference_failure_on_instance_creation, deprecated_member_use
 
 import 'package:flutter/material.dart';
+import 'package:market_world/features/admin/admin_listings_page.dart';
+import 'package:market_world/features/admin/admin_properties_page.dart';
+import 'package:market_world/features/admin/admin_users_page.dart';
 import 'package:market_world/shared/widgets/app_app_bar.dart';
-
-
-
-import 'admin_users_page.dart';
-import 'admin_listings_page.dart';
-import 'admin_properties_page.dart';
 
 
 
@@ -53,15 +50,15 @@ class AdminDashboardPage extends StatelessWidget {
 }
 
 class _AdminCard extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final Widget page;
 
   const _AdminCard({
     required this.icon,
     required this.title,
     required this.page,
   });
+  final IconData icon;
+  final String title;
+  final Widget page;
 
   @override
   Widget build(BuildContext context) {

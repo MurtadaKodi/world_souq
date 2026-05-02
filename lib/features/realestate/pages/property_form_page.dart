@@ -1,18 +1,16 @@
 // ignore_for_file: deprecated_member_use
 
-import 'dart:typed_data';
+import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:market_world/features/realestate/services/reverse_geocoding_service.dart';
+import 'package:market_world/features/realestate/models/property_model.dart';
+import 'package:market_world/features/realestate/services/property_storage_service.dart';
 import 'package:market_world/features/realestate/widgets/location_picker_map.dart';
-import 'package:market_world/features/realestate/widgets/map_card.dart';
 import 'package:market_world/features/storage/firebase_storage_service.dart';
-
-import '../models/property_model.dart';
-import '../services/property_storage_service.dart';
 
 String? address;
 bool loadingAddress = false;
@@ -22,10 +20,10 @@ List<String> buildSearchKeywords(String text) {
   final lower = text.toLowerCase().trim();
   final words = lower.split(RegExp(r'\s+'));
 
-  final Set<String> keywords = {};
+  final keywords = <String>{};
 
   for (final word in words) {
-    for (int i = 1; i <= word.length; i++) {
+    for (var i = 1; i <= word.length; i++) {
       keywords.add(word.substring(0, i));
     }
   }
@@ -35,9 +33,6 @@ List<String> buildSearchKeywords(String text) {
 
 /// ================= PAGE =================
 class PropertyFormPage extends StatefulWidget {
-  final PropertyModel? property; // null = إضافة | not null = تعديل
-  final double? lat;
-  final double? lng;
 
   const PropertyFormPage({
     super.key,
@@ -45,12 +40,16 @@ class PropertyFormPage extends StatefulWidget {
     this.lat,
     this.lng,
   });
+  final PropertyModel? property; // null = إضافة | not null = تعديل
+  final double? lat;
+  final double? lng;
 
   @override
   State<PropertyFormPage> createState() => _PropertyFormPageState();
 }
 
 class _PropertyFormPageState extends State<PropertyFormPage> {
+  int step = 0;
   final _formKey = GlobalKey<FormState>();
 
   double? lat;
@@ -127,7 +126,7 @@ class _PropertyFormPageState extends State<PropertyFormPage> {
       final uid = FirebaseAuth.instance.currentUser!.uid;
       final propertyId = widget.property?.id ?? propertyService.newPropertyId();
 
-      final List<String> uploadedPaths = [];
+      final uploadedPaths = <String>[];
 
       for (final img in pickedImages) {
         final path = await storageService.uploadImage(
@@ -158,7 +157,8 @@ class _PropertyFormPageState extends State<PropertyFormPage> {
         createdAt: widget.property?.createdAt,
         updatedAt: Timestamp.now(),
         lat: lat,
-        lng: lng, favoritesCount: 0,
+        lng: lng,
+        favoritesCount: 0,
       );
 
       if (widget.property == null) {
@@ -169,7 +169,7 @@ class _PropertyFormPageState extends State<PropertyFormPage> {
 
       if (!mounted) return;
       Navigator.pop(context, true);
-    // ignore: unused_catch_stack
+      // ignore: unused_catch_stack
     } catch (e, stack) {
       _show('Error: $e');
     } finally {
@@ -187,164 +187,92 @@ class _PropertyFormPageState extends State<PropertyFormPage> {
     return Stack(
       children: [
         Scaffold(
+          resizeToAvoidBottomInset: true,
           appBar: AppBar(
             title:
                 Text(widget.property == null ? 'إضافة عقار' : 'تعديل العقار'),
           ),
-          body: Form(
-            key: _formKey,
-            child: ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                _input(titleCtrl, 'العنوان'),
-                _input(descCtrl, 'الوصف', maxLines: 4),
-                _input(priceCtrl, 'السعر', keyboard: TextInputType.number),
-                _input(cityCtrl, 'المدينة'),
-                _input(areaCtrl, 'المنطقة'),
-
-                const SizedBox(height: 12),
-
-                Row(
-                  children: [
-                    Expanded(child: _dropdownType()),
-                    const SizedBox(width: 12),
-                    Expanded(child: _dropdownPurpose()),
-                  ],
+          body: SafeArea(
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.of(context).viewInsets.bottom,
                 ),
-
-                const SizedBox(height: 20),
-
-                // 🖼 Preview
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
+                child: Column(
                   children: [
-                    ...pickedImages.map(
-                      (x) => FutureBuilder<Uint8List>(
-                        future: x.readAsBytes(),
-                        builder: (context, snapshot) {
-                          if (snapshot.hasData) {
-                            return Image.memory(
-                              snapshot.data!,
-                              width: 80,
-                              height: 80,
-                              fit: BoxFit.cover,
-                            );
-                          }
-                          return Container(
-                            width: 80,
-                            height: 80,
-                            color: Colors.grey[300],
-                            child: const Center(
-                              child: CircularProgressIndicator(strokeWidth: 2),
+                    Form(
+                        key: _formKey,
+                        child: Column(
+                          children: [
+                            // Progress
+                            Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: LinearProgressIndicator(
+                                value: (step + 1) / 4,
+                              ),
                             ),
-                          );
-                        },
-                      ),
-                    ),
-                    GestureDetector(
-                      onTap: _pickImages,
-                      child: Container(
-                        width: 80,
-                        height: 80,
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Icon(Icons.add),
-                      ),
-                    ),
+                            AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 400),
+                              child: _buildStep(),
+                            ),
+                            _buildBottomNavigationBar(),
+                          ],
+                        ),),
                   ],
                 ),
-                const SizedBox(height: 24),
-
-                const Text(
-                  'اختيار الموقع',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-
-                const SizedBox(height: 12),
-                MapCard(
-                    title: 'الموقع',
-                    child: LocationPickerMap(
-                      initialLat: lat,
-                      initialLng: lng,
-                      onPicked: (point) async {
-  setState(() {
-    lat = point.latitude;
-    lng = point.longitude;
-    loadingAddress = true;
-  });
-
-  final addr = await ReverseGeocodingService.getAddress(
-    lat: lat!,
-    lng: lng!,
-  );
-
-  setState(() {
-    address = addr;
-    loadingAddress = false;
-  });
-},
-
-
-                    )),
-                const SizedBox(height: 24),
-              if (loadingAddress)
-  const Padding(
-    padding: EdgeInsets.only(top: 8),
-    child: LinearProgressIndicator(),
-  )
-else if (address != null)
-  Padding(
-    padding: const EdgeInsets.only(top: 8),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Icon(Icons.place, size: 18, color: Colors.red),
-        const SizedBox(width: 6),
-        Expanded(
-          child: Text(
-            address!,
-            style: const TextStyle(fontSize: 13),
-          ),
-        ),
-      ],
-    ),
-  ),
-                const SizedBox(height: 24),
-
-                FilledButton(
-                  onPressed: saving ? null : _save,
-                  child: const Text('حفظ'),
-                ),
-              ],
+              ),
             ),
           ),
         ),
         if (saving)
-          Container(
+          const ColoredBox(
             color: Colors.black26,
-            child: const Center(child: CircularProgressIndicator()),
+            child: Center(child: CircularProgressIndicator()),
           ),
       ],
     );
   }
 
   // ================= Widgets =================
-  Widget _input(TextEditingController c, String label,
-      {int maxLines = 1, TextInputType keyboard = TextInputType.text}) {
+  Widget _ultraInput(
+    TextEditingController c,
+    String label, {
+    int maxLines = 1,
+    TextInputType keyboard = TextInputType.text,
+    IconData? icon,
+  }) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: 16),
       child: TextFormField(
         controller: c,
         maxLines: maxLines,
         keyboardType: keyboard,
         validator: (v) => v == null || v.isEmpty ? 'مطلوب' : null,
+        style: const TextStyle(fontSize: 15),
         decoration: InputDecoration(
           labelText: label,
+          prefixIcon: icon != null ? Icon(icon) : null,
+          filled: true,
+          fillColor: Colors.white,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 14,
+          ),
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(18),
+            borderSide: BorderSide.none,
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(18),
+            borderSide: BorderSide(color: Colors.grey.shade300),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(18),
+            borderSide: const BorderSide(color: Colors.blue, width: 1.5),
+          ),
+          errorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(18),
+            borderSide: const BorderSide(color: Colors.red),
           ),
         ),
       ),
@@ -373,6 +301,222 @@ else if (address != null)
       ],
       onChanged: (v) => setState(() => purpose = v!),
       decoration: const InputDecoration(labelText: 'الغرض'),
+    );
+  }
+
+  Widget _buildStep() {
+    switch (step) {
+      case 0:
+        return _stepBasic();
+      case 1:
+        return _stepDetails();
+      case 2:
+        return _stepImages();
+      case 3:
+        return _stepLocation();
+      default:
+        return const SizedBox();
+    }
+  }
+
+  Widget _stepBasic() {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        children: [
+          _stepTitle('المعلومات الأساسية'),
+          _ultraInput(titleCtrl, 'العنوان', icon: Icons.home),
+          _ultraInput(descCtrl, 'الوصف', maxLines: 3),
+        ],
+      ),
+    );
+  }
+
+  Widget _stepDetails() {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        children: [
+          _ultraInput(priceCtrl, 'السعر', keyboard: TextInputType.number),
+          _ultraInput(cityCtrl, 'المدينة'),
+          _ultraInput(areaCtrl, 'المنطقة'),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(child: _dropdownType()),
+              const SizedBox(width: 12),
+              Expanded(child: _dropdownPurpose()),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _stepImages() {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: [
+  ...pickedImages.map(
+    (x) => kIsWeb
+        ? Image.network(
+            x.path,
+            width: 80,
+            height: 80,
+            fit: BoxFit.cover,
+          )
+        : Image.file(
+            File(x.path),
+            width: 80,
+            height: 80,
+            fit: BoxFit.cover,
+          ),
+  ),
+          GestureDetector(
+            onTap: _pickImages,
+            child: Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(Icons.add),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _stepLocation() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Container(
+        height: 260,
+        margin: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+      borderRadius: BorderRadius.circular(20),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.15),
+          blurRadius: 12,
+        ),
+      ],
+        ),
+        child: ClipRRect(
+      borderRadius: BorderRadius.circular(20),
+      child: Stack(
+        children: [
+          // 🗺️ MAP FULL
+          Positioned.fill(
+            child: LocationPickerMap(
+              initialLat: lat,
+              initialLng: lng,
+              onPicked: (point) {
+                setState(() {
+                  lat = point.latitude;
+                  lng = point.longitude;
+                });
+              },
+            ),
+          ),
+      
+          // 🌑 Overlay
+          Positioned(
+            bottom: 12,
+            left: 12,
+            right: 12,
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.6),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Text(
+                'اضغط على الخريطة لتحديد الموقع',
+                style: TextStyle(color: Colors.white),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
+      
+          // 📍 Title فوق
+          Positioned(
+            top: 12,
+            left: 12,
+            child: Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 6,
+              ),
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.6),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Text(
+                '📍 الموقع',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ),
+        ],
+      ),
+        ),
+      ),
+      ),
+    );
+  }
+
+  Widget _stepTitle(String title) {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Text(
+        title,
+        style: const TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBottomNavigationBar() {
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+        left: 16,
+        right: 16,
+        top: 10,
+      ),
+      child: Row(
+        children: [
+          if (step > 0)
+            Expanded(
+              child: OutlinedButton(
+                onPressed: () => setState(() => step--),
+                child: const Text('رجوع'),
+              ),
+            ),
+          if (step > 0) const SizedBox(width: 10),
+          Expanded(
+            child: ElevatedButton(
+              onPressed: () {
+                if (step < 3) {
+                  setState(() => step++);
+                } else {
+                  _save();
+                }
+              },
+              child: Text(step == 3 ? 'حفظ' : 'التالي'),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

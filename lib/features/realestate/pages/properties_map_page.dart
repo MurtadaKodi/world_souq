@@ -1,23 +1,26 @@
+// ignore_for_file: deprecated_member_use, dead_null_aware_expression, avoid_print
+
 import 'dart:async';
+
 import 'package:flutter/material.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:market_world/core/constants/enums.dart';
+import 'package:market_world/features/realestate/models/property_model.dart';
 import 'package:market_world/features/realestate/pages/property_details_page.dart';
+import 'package:market_world/features/realestate/services/property_service.dart';
+import 'package:market_world/features/realestate/widgets/luxury_marker.dart';
+import 'package:market_world/features/realestate/widgets/marker_generator.dart';
 import 'package:market_world/map/cluster_marker.dart';
 import 'package:market_world/map/smart_cluster_engine.dart';
 
-import '../models/property_model.dart';
-import '../services/property_service.dart';
-import '../widgets/price_marker.dart';
-import '../widgets/marker_generator.dart';
-
 class PropertiesMapPage extends StatefulWidget {
-  final String? focusPropertyId;
 
   const PropertiesMapPage({
     super.key,
-    this.focusPropertyId,
+    this.focusPropertyId, required int initialIndex, required UserRole role,
   });
+  final String? focusPropertyId;
 
   @override
   State<PropertiesMapPage> createState() => _PropertiesMapPageState();
@@ -27,15 +30,35 @@ class _PropertiesMapPageState extends State<PropertiesMapPage> {
   final PropertyService _service = PropertyService();
 
   GoogleMapController? _controller;
-
+  LatLngBounds? _visibleRegion;
   List<PropertyModel> _properties = [];
   Set<Marker> _markers = {};
   Set<Circle> _circles = {};
+  List<PropertyModel> _visibleProperties() {
+    if (_visibleRegion == null) return _properties;
+
+    return _properties.where((p) {
+      if (p.lat == null || p.lng == null) return false;
+
+      return p.lat! >= _visibleRegion!.southwest.latitude &&
+          p.lat! <= _visibleRegion!.northeast.latitude &&
+          p.lng! >= _visibleRegion!.southwest.longitude &&
+          p.lng! <= _visibleRegion!.northeast.longitude;
+    }).toList();
+  }
+
+  double _getDynamicRadius() {
+    if (_currentZoom >= 16) return 800;
+    if (_currentZoom >= 14) return 2000;
+    if (_currentZoom >= 12) return 5000;
+    return 12000;
+  }
 
   final Map<String, BitmapDescriptor> _markerCache = {};
 
   Position? _currentPosition;
   double _currentZoom = 12;
+  // ignore: unused_field
   final double _radiusMeters = 5000;
 
   String? _selectedId;
@@ -61,15 +84,22 @@ class _PropertiesMapPageState extends State<PropertiesMapPage> {
     });
   }
 
-  void _handleInitialFocus() {
+  Future<void> _handleInitialFocus() async {
     if (widget.focusPropertyId == null) return;
 
-    final property =
-        _properties.where((p) => p.id == widget.focusPropertyId).firstOrNull;
+    final list =
+        _properties.where((p) => p.id == widget.focusPropertyId).toList();
 
-    if (property != null) {
-      _highlightProperty(property);
-    }
+    if (list.isEmpty) return;
+
+    final property = list.first;
+
+    await _highlightProperty(property);
+    setState(() {
+      _selectedId = property.id;
+    });
+
+    await Future.delayed(const Duration(milliseconds: 150));
   }
 
   // =========================
@@ -117,7 +147,7 @@ class _PropertiesMapPageState extends State<PropertiesMapPage> {
   // CLUSTERS + MARKERS (FINAL)
   // =========================
   Future<void> _buildClusters() async {
-    final clusters = generateClusters(_filteredProperties(), _currentZoom);
+    final clusters = generateClusters(_visibleProperties(), _currentZoom);
 
     final markers = <Marker>{};
 
@@ -135,12 +165,13 @@ class _PropertiesMapPageState extends State<PropertiesMapPage> {
                 ? Colors.orange
                 : Colors.blue;
 
-        final icon = await markerFromWidget(
-          ClusterMarker(
-            count: cluster.properties.length,
-            zoom: _currentZoom,
-          ),
-        );
+        if (cluster.properties.length > 1) {
+  final icon = await markerFromWidget(
+    ClusterMarker(
+      count: cluster.properties.length,
+      zoom: _currentZoom,
+    ),
+  );
 
         markers.add(
           Marker(
@@ -153,8 +184,6 @@ class _PropertiesMapPageState extends State<PropertiesMapPage> {
                   CameraPosition(
                     target: cluster.position,
                     zoom: _currentZoom + 2,
-                    tilt: 0,
-                    bearing: 0,
                   ),
                 ),
               );
@@ -163,64 +192,57 @@ class _PropertiesMapPageState extends State<PropertiesMapPage> {
         );
 
         continue;
-      }
+      }}
 
-      // =========================
-      // 💰 SINGLE PROPERTY
-      // =========================
+      print('Properties count: ${cluster.properties.length}');
+// =========================
+// 💰 SINGLE PROPERTY
+// =========================
       final property = cluster.properties.first;
 
+      final zoomBucket_ = (_currentZoom / 2).floor();
+
       final cacheKey =
-          '${property.id}_${_currentZoom.toStringAsFixed(1)}_${property.id == _selectedId}';
+          '${property.id}_$zoomBucket_${property.id == _selectedId}';
 
       BitmapDescriptor icon;
 
       if (_markerCache.containsKey(cacheKey)) {
         icon = _markerCache[cacheKey]!;
       } else {
-        icon = await markerFromWidget(
-          PriceMarker(
-            price: '${property.price.toInt()}',
-            selected: property.id == _selectedId,
-            isOwner: false,
-            isInsideRadius: true,
-            zoom: _currentZoom,
-          ),
+        icon = await createLuxuryMarker(
+          price: '${property.price.toInt() ?? 0} QAR',
+          zoom: _currentZoom,
+          selected: property.id == _selectedId,
         );
-
-        _markerCache[cacheKey] = icon;
       }
 
       markers.add(
         Marker(
-          markerId: MarkerId(property.id),
-          position: cluster.position,
-          icon: icon,
-          onTap: () async {
-            await _highlightProperty(property);
+            markerId: MarkerId(property.id),
+            position: cluster.position,
+            icon: icon,
+            onTap: () async {
+              // ❌ منع الفتح التلقائي أثناء الـ highlight
+              if (_isHighlighting) return;
 
-            if (!mounted) return;
+              await _highlightProperty(property);
 
-            await Navigator.push(
-  context,
-  PageRouteBuilder(
-    transitionDuration: const Duration(milliseconds: 400),
-    pageBuilder: (_, animation, __) {
-      return FadeTransition(
-        opacity: animation,
-        child: PropertyDetailsFullScreen(
-          property: property,
-          onClose: () => Navigator.pop(context),
-          onBook: () {},
-        ),
-      );
-    },
-  ),
-);
+              if (!mounted) return;
+              showModalBottomSheet(
+                context: context,
+                isScrollControlled: true,
+                builder: (_) {
+                  return PropertyDetailsFullScreen(
+                    property: property,
+                    onClose: () => Navigator.pop(context),
+                    onBook: () {},
+                  );
+                },
+              );
 
-            setState(() => _isSheetOpen = false);
-          },
-        ),
+              setState(() => _isSheetOpen = false);
+            },),
       );
     }
 
@@ -233,6 +255,7 @@ class _PropertiesMapPageState extends State<PropertiesMapPage> {
   // =========================
   // FILTER
   // =========================
+  // ignore: unused_element
   List<PropertyModel> _filteredProperties() {
     if (_currentPosition == null) return _properties;
 
@@ -246,7 +269,7 @@ class _PropertiesMapPageState extends State<PropertiesMapPage> {
         p.lng!,
       );
 
-      return distance <= _radiusMeters;
+      return distance <= _getDynamicRadius();
     }).toList();
   }
 
@@ -257,7 +280,9 @@ class _PropertiesMapPageState extends State<PropertiesMapPage> {
     if (_isHighlighting) return;
 
     _isHighlighting = true;
-    _selectedId = property.id;
+    setState(() {
+      _selectedId = property.id;
+    });
 
     await _controller?.animateCamera(
       CameraUpdate.newCameraPosition(
@@ -271,6 +296,8 @@ class _PropertiesMapPageState extends State<PropertiesMapPage> {
     setState(() {});
     await Future.delayed(const Duration(milliseconds: 600));
 
+    // 🔥 ألغِ التحديد بعد الحركة
+    _selectedId = null;
     _isHighlighting = false;
   }
 
@@ -288,7 +315,7 @@ class _PropertiesMapPageState extends State<PropertiesMapPage> {
         Circle(
           circleId: const CircleId('radius'),
           center: latLng,
-          radius: _radiusMeters,
+          radius: _getDynamicRadius(),
           fillColor: Colors.blue.withOpacity(0.15),
           strokeColor: Colors.blue,
         ),
@@ -296,7 +323,7 @@ class _PropertiesMapPageState extends State<PropertiesMapPage> {
     });
 
     _controller?.animateCamera(
-      CameraUpdate.newLatLngZoom(latLng, 14),
+      CameraUpdate.newLatLngZoom(latLng, 18),
     );
 
     await _rebuild();
@@ -307,7 +334,19 @@ class _PropertiesMapPageState extends State<PropertiesMapPage> {
   // =========================
   @override
   Widget build(BuildContext context) {
+    final isStandalone = Navigator.of(context).canPop();
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
+
     return Scaffold(
+      appBar: isStandalone
+          ? AppBar(
+              title: isArabic ? const Text('الخريطة') : const Text('Map'),
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: () => Navigator.pop(context),
+              ),
+            )
+          : null,
       body: Stack(
         children: [
           AbsorbPointer(
@@ -319,25 +358,69 @@ class _PropertiesMapPageState extends State<PropertiesMapPage> {
               ),
               markers: _markers,
               circles: _circles,
-              myLocationEnabled: false,
-              onMapCreated: (c) => _controller = c,
+              onMapCreated: (controller) {
+                _controller = controller;
+                print('Map created ✅');
+                print('Properties count: ${_properties.length}');
+              },
               onCameraMove: (pos) => _currentZoom = pos.zoom,
-              onCameraIdle: () {
+              onCameraIdle: () async {
+                _visibleRegion = await _controller?.getVisibleRegion();
+
                 _debounce?.cancel();
                 _debounce = Timer(const Duration(milliseconds: 300), _rebuild);
               },
             ),
           ),
           Positioned(
-            bottom: 100,
-            right: 20,
-            child: FloatingActionButton(
-              onPressed: _goToCurrentLocation,
-              child: const Icon(Icons.my_location),
+            bottom: 190,
+            right: 10,
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.25),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: IconButton(
+                icon: const Icon(Icons.my_location, color: Colors.black),
+                onPressed: _goToCurrentLocation,
+              ),
             ),
           ),
         ],
       ),
     );
+  }
+
+  // ignore: unused_element
+  PropertyModel? _getNearestProperty() {
+    if (_currentPosition == null || _properties.isEmpty) return null;
+
+    PropertyModel? nearest;
+    var minDistance = double.infinity;
+
+    for (final p in _properties) {
+      if (p.lat == null || p.lng == null) continue;
+
+      final d = Geolocator.distanceBetween(
+        _currentPosition!.latitude,
+        _currentPosition!.longitude,
+        p.lat!,
+        p.lng!,
+      );
+
+      if (d < minDistance) {
+        minDistance = d;
+        nearest = p;
+      }
+    }
+
+    return nearest;
   }
 }

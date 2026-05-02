@@ -1,7 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-
-import '../models/booking_model.dart';
+import 'package:market_world/features/realestate/models/booking_model.dart';
 
 class BookingService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -11,22 +10,16 @@ class BookingService {
 
   String? get _uid => _auth.currentUser?.uid;
 
-  // ================= GET BY ID =================
-
-  Future<BookingModel> getBookingById(String id) async {
-    final doc = await _db.collection(_collection).doc(id).get();
-    return BookingModel.fromDoc(doc);
-  }
+  static const bool isDemoMode = false;
 
   // ================= CREATE =================
 
   Future<void> createBooking(BookingModel booking) async {
     final uid = _uid;
     if (uid == null) {
-      throw Exception('NOT_LOGGED_IN');
+      throw 'يجب تسجيل الدخول أولاً';
     }
 
-    // ❌ منع الحجز في نفس الوقت
     final conflict = await _db
         .collection(_collection)
         .where('propertyId', isEqualTo: booking.propertyId)
@@ -38,19 +31,46 @@ class BookingService {
         .get();
 
     if (conflict.docs.isNotEmpty) {
-      throw Exception('TIME_ALREADY_BOOKED');
+      throw 'هذا الوقت محجوز مسبقاً';
+    }
+
+    if (isDemoMode) {
+      await Future.delayed(const Duration(milliseconds: 500));
+      return;
     }
 
     await _db.collection(_collection).add({
-  ...booking.toJson(),
-  'clientId': uid,
-  'ownerId': booking.ownerId, // 🔴 تأكد أنه محفوظ
-  'status': 'pending',
-  'createdAt': FieldValue.serverTimestamp(),
-});
+      ...booking.toJson(),
+      'clientId': uid,
+      'ownerId': booking.ownerId,
+      'status': 'pending',
+      'createdAt': FieldValue.serverTimestamp(),
+    });
   }
 
   // ================= STREAMS =================
+
+  Stream<List<BookingModel>> streamMyBookings() {
+    final uid = _uid;
+    if (uid == null) return const Stream.empty();
+
+    return _db
+        .collection(_collection)
+        .where('clientId', isEqualTo: uid)
+        .snapshots()
+        .map((s) => s.docs.map(BookingModel.fromDoc).toList());
+  }
+
+  Stream<List<BookingModel>> streamOwnerBookings() {
+    final uid = _uid;
+    if (uid == null) return const Stream.empty();
+
+    return _db
+        .collection(_collection)
+        .where('ownerId', isEqualTo: uid)
+        .snapshots()
+        .map((s) => s.docs.map(BookingModel.fromDoc).toList());
+  }
 
   Stream<List<BookingModel>> streamPropertyBookingsForDate(
     String propertyId,
@@ -65,77 +85,7 @@ class BookingService {
         .where('visitDate', isGreaterThanOrEqualTo: start)
         .where('visitDate', isLessThan: end)
         .snapshots()
-        .map(
-          (s) => s.docs.map(BookingModel.fromDoc).toList(),
-        );
-  }
-  Stream<Map<String, int>> streamOwnerBookingStats() {
-  final uid = _uid;
-  if (uid == null) return const Stream.empty();
-
-  return _db
-      .collection(_collection)
-      .where('ownerId', isEqualTo: uid)
-      .snapshots()
-      .map((snap) {
-    int pending = 0;
-    int confirmed = 0;
-    int completed = 0;
-    int cancelled = 0;
-
-    for (final d in snap.docs) {
-      switch (d['status']) {
-        case 'pending':
-          pending++;
-          break;
-        case 'confirmed':
-          confirmed++;
-          break;
-        case 'completed':
-          completed++;
-          break;
-        case 'cancelled':
-          cancelled++;
-          break;
-      }
-    }
-
-    return {
-      'total': snap.docs.length,
-      'pending': pending,
-      'confirmed': confirmed,
-      'completed': completed,
-      'cancelled': cancelled,
-    };
-  });
-}
-
-  Stream<List<BookingModel>> streamMyBookings() {
-    final uid = _uid;
-    if (uid == null) return const Stream.empty();
-
-    return _db
-        .collection(_collection)
-        .where('clientId', isEqualTo: uid)
-        .orderBy('createdAt', descending: true)
-        .snapshots()
-        .map(
-          (s) => s.docs.map(BookingModel.fromDoc).toList(),
-        );
-  }
-
-  Stream<List<BookingModel>> streamOwnerBookings() {
-    final uid = _uid;
-    if (uid == null) return const Stream.empty();
-
-    return _db
-        .collection(_collection)
-        .where('ownerId', isEqualTo: uid)
-        .orderBy('createdAt', descending: true)
-        .snapshots()
-        .map(
-          (s) => s.docs.map(BookingModel.fromDoc).toList(),
-        );
+        .map((s) => s.docs.map(BookingModel.fromDoc).toList());
   }
 
   // ================= STATUS =================
@@ -156,31 +106,82 @@ class BookingService {
   Future<void> completeBooking(String id) =>
       updateStatus(id, 'completed');
 
-  Future<Map<String, int>> getOwnerBookingStats(String uid) async {
-  final snap = await _db
+  // ================= DELETE =================
+
+  Future<void> deleteBooking(String id) async {
+    final uid = _uid;
+    if (uid == null) throw Exception('NOT_LOGGED_IN');
+
+    final docRef = _db.collection(_collection).doc(id);
+    final doc = await docRef.get();
+
+    if (!doc.exists) throw Exception('BOOKING_NOT_FOUND');
+
+    final data = doc.data()!;
+    if (uid != data['ownerId'] && uid != data['clientId']) {
+      throw Exception('NOT_AUTHORIZED');
+    }
+
+    await docRef.delete();
+  }
+  Future<BookingModel> getBookingById(String id) async {
+  final doc = await _db.collection(_collection).doc(id).get();
+  return BookingModel.fromDoc(doc);
+}
+Stream<Map<String, int>> streamOwnerBookingStats() {
+  final uid = _uid;
+  if (uid == null) {
+    return Stream.value({
+    'total': 0,
+    'pending': 0,
+    'completed': 0,
+  });
+  }
+
+  return _db
       .collection(_collection)
       .where('ownerId', isEqualTo: uid)
+      .snapshots()
+      .map((snap) {
+    final total = snap.docs.length;
+    var pending = 0;
+    var completed = 0;
+
+    for (final d in snap.docs) {
+      final status = d['status'] ?? 'pending';
+
+      if (status == 'pending') pending++;
+      if (status == 'completed') completed++;
+    }
+
+    return {
+      'total': total,
+      'pending': pending,
+      'completed': completed,
+    };
+  });
+}
+Future<Map<String, int>> getTenantBookingStats(String uid) async {
+  final snap = await _db
+      .collection(_collection)
+      .where('clientId', isEqualTo: uid)
       .get();
 
-  int pending = 0;
-  int confirmed = 0;
-  int completed = 0;
-  int cancelled = 0;
+  var pending = 0;
+  var confirmed = 0;
+  var completed = 0;
+  var cancelled = 0;
 
   for (final d in snap.docs) {
     switch (d['status']) {
       case 'pending':
         pending++;
-        break;
       case 'confirmed':
         confirmed++;
-        break;
       case 'completed':
         completed++;
-        break;
       case 'cancelled':
         cancelled++;
-        break;
     }
   }
 
@@ -192,9 +193,4 @@ class BookingService {
     'cancelled': cancelled,
   };
 }
-
-  Future<Map<String, int>> getTenantBookingStats(String uid) async {
-    throw UnimplementedError('getTenantBookingStats is not yet implemented.');
-  }
-
 }

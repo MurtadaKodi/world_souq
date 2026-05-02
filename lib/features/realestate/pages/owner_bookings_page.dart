@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../models/booking_model.dart';
-import '../services/booking_service.dart';
+import 'package:market_world/features/realestate/models/booking_model.dart';
+import 'package:market_world/features/realestate/services/booking_service.dart';
 
 class OwnerBookingsPage extends StatelessWidget {
   const OwnerBookingsPage({super.key});

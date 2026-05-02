@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:market_world/core/providers/auth_provider.dart';
 import 'package:provider/provider.dart';
-import '../providers/auth_provider.dart';
 
 class AdminGuard extends StatelessWidget {
+  const AdminGuard({required this.child, super.key});
   final Widget child;
-  const AdminGuard({super.key, required this.child});
 
   @override
   Widget build(BuildContext context) {

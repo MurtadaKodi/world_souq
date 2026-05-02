@@ -1,21 +1,16 @@
 import 'package:flutter/material.dart';
-import 'adaptive_image.dart';
+import 'package:market_world/shared/widgets/adaptive_image.dart';
 
 class MediaGridPicker extends StatelessWidget {
+
+  const MediaGridPicker({
+    required this.images, required this.mainImage, required this.onPick, required this.onRemove, required this.onSetMain, super.key,
+  });
   final List<String> images;
   final String? mainImage;
   final VoidCallback onPick;
   final void Function(String) onRemove;
   final void Function(String) onSetMain;
-
-  const MediaGridPicker({
-    super.key,
-    required this.images,
-    required this.mainImage,
-    required this.onPick,
-    required this.onRemove,
-    required this.onSetMain,
-  });
 
   @override
   Widget build(BuildContext context) {
@@ -56,7 +51,6 @@ class MediaGridPicker extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                   child: AdaptiveImage(
                     path: path,
-                    fit: BoxFit.cover,
                   ),
                 ),
                 Positioned(

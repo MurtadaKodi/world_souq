@@ -87,7 +87,7 @@ class FavoritesService {
     if (ref == null) return const Stream.empty();
 
     return ref.snapshots().map(
-        (snapshot) => snapshot.docs.map((d) => d.id).toList());
+        (snapshot) => snapshot.docs.map((d) => d.id).toList(),);
   }
 
   Stream<int> favoritesCount() {

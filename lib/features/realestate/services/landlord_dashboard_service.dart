@@ -33,25 +33,21 @@ class LandlordDashboardService {
         .where('ownerId', isEqualTo: uid)
         .snapshots()
         .map((snapshot) {
-      int pending = 0;
-      int confirmed = 0;
-      int completed = 0;
-      int cancelled = 0;
+      var pending = 0;
+      var confirmed = 0;
+      var completed = 0;
+      var cancelled = 0;
 
       for (final doc in snapshot.docs) {
         switch (doc['status']) {
           case 'pending':
             pending++;
-            break;
           case 'confirmed':
             confirmed++;
-            break;
           case 'completed':
             completed++;
-            break;
           case 'cancelled':
             cancelled++;
-            break;
         }
       }
 
@@ -77,7 +73,7 @@ class LandlordDashboardService {
         .where('ownerId', isEqualTo: uid)
         .snapshots()
         .asyncMap((propertiesSnapshot) async {
-      int totalFavorites = 0;
+      var totalFavorites = 0;
 
       for (final property in propertiesSnapshot.docs) {
         final favSnapshot = await _db

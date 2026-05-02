@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class LanguageProvider extends ChangeNotifier {
+
+  LanguageProvider() {
+    _loadLanguage();
+  }
   static const _key = 'app_language';
 
   Locale _locale = const Locale('en');
@@ -10,10 +14,6 @@ class LanguageProvider extends ChangeNotifier {
   Locale get locale => _locale;
   TextDirection get textDirection => _direction;
   bool get isArabic => _locale.languageCode == 'ar';
-
-  LanguageProvider() {
-    _loadLanguage();
-  }
 
   /// 🔁 Toggle language
   Future<void> toggleLanguage() async {

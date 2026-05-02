@@ -1,18 +1,20 @@
+// ignore_for_file: inference_failure_on_function_invocation
+
 import 'package:flutter/material.dart';
 import 'package:market_world/features/realestate/pages/booking_details_page.dart';
 import 'package:market_world/features/realestate/pages/landlord_dashboard_page.dart';
-import '../pages/owner_bookings_page.dart';
-import '../../shared_pages/profile_page.dart';
+import 'package:market_world/features/realestate/pages/owner_bookings_page.dart';
+import 'package:market_world/features/shared_pages/profile_page.dart';
 
 class LandlordBottomNav extends StatefulWidget {
-  final int initialIndex;
-  final String? openBookingId;
 
   const LandlordBottomNav({
     super.key,
     this.initialIndex = 0,
     this.openBookingId,
   });
+  final int initialIndex;
+  final String? openBookingId;
 
   @override
   State<LandlordBottomNav> createState() => _LandlordBottomNavState();

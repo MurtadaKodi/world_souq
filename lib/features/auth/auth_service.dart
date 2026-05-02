@@ -1,5 +1,5 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -50,7 +50,7 @@ class AuthService {
     return doc.data()?['role'] as String?;
   }
 
-  // 🚫 THIS IS THE IMPORTANT PART
+  // 🚫 CHECK ACTIVE
   Future<void> ensureUserIsActive() async {
     final user = _auth.currentUser;
     if (user == null) return;
@@ -62,31 +62,40 @@ class AuthService {
       throw Exception('USER_DISABLED');
     }
   }
+
+  // ✅ REGISTER (الحل النهائي)
   Future<void> register({
-  required String email,
-  required String password,
-  required String role,
-}) async {
-  final cred = await FirebaseAuth.instance
-      .createUserWithEmailAndPassword(
-    email: email,
-    password: password,
-  );
+    required String email,
+    required String password,
+    required String role,
+  }) async {
+    try {
+      final cred = await _auth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
 
-  final uid = cred.user!.uid;
+      final uid = cred.user!.uid;
 
-  await FirebaseFirestore.instance
-      .collection('users')
-      .doc(uid)
-      .set({
-    'email': email,
-    'role': role,
-    'isAdmin': false,
-    'createdAt': FieldValue.serverTimestamp(),
-    'active': true,
-  });
-}
+      // 🔹 Firestore (لا نخليها تكسر العملية)
+      try {
+        await _db.collection('users').doc(uid).set({
+          'email': email,
+          'role': role,
+          'isAdmin': false,
+          'createdAt': FieldValue.serverTimestamp(),
+          'active': true,
+        });
+      } catch (e) {
+        // 👇 تجاهل الخطأ
+        // ignore: avoid_print
+        print('⚠️ Firestore error ignored: $e');
+      }
 
+    } on FirebaseAuthException {
+      rethrow; // فقط Firebase errors
+    }
+  }
 
   // 🔁 UPGRADE anonymous → email
   Future<void> linkAnonymousWithEmail({

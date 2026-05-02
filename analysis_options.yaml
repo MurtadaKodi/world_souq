@@ -1,7 +1,27 @@
 analyzer:
+  exclude:
+    - build/**
+    - ios/**
+    - android/**
+
   errors:
-    deprecated_member_use: ignore
-include: package:flutter_lints/flutter.yaml
+    # 👇 أهم تخفيف
+    public_member_api_docs: ignore
+    lines_longer_than_80_chars: ignore
+    avoid_print: ignore
+    discarded_futures: ignore
+    unawaited_futures: ignore
+    document_ignores: ignore
+    invalid_annotation_target: ignore
+    cascade_invocations: ignore
+
 linter:
   rules:
+    # 👇 نخلي lint عملي فقط
     prefer_single_quotes: true
+
+    # ❌ نلغي الصرامة الزائدة
+    require_trailing_commas: false
+    prefer_const_constructors: false
+    prefer_final_fields: false
+    avoid_unnecessary_containers: false

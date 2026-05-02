@@ -1,14 +1,14 @@
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import '../features/realestate/models/property_model.dart';
+import 'package:market_world/features/realestate/models/property_model.dart';
 
 class SmartCluster {
-  final LatLng position;
-  final List<PropertyModel> properties;
 
   SmartCluster({
     required this.position,
     required this.properties,
   });
+  final LatLng position;
+  final List<PropertyModel> properties;
 }
 bool isHeatmap(double zoom) => zoom < 9;
 bool isCluster(double zoom) => zoom >= 9 && zoom < 15;
@@ -19,7 +19,7 @@ double getGridSize(double zoom) {
   if (zoom < 11) return 0.06;
   if (zoom < 13) return 0.03;
   if (zoom < 15) return 0.015;
-  return 0.0; // individual mode
+  return 0; // individual mode
 }
 
 List<SmartCluster> generateClusters(
@@ -36,13 +36,13 @@ List<SmartCluster> generateClusters(
         .map((p) => SmartCluster(
               position: LatLng(p.lat!, p.lng!),
               properties: [p],
-            ))
+            ),)
         .toList();
   }
 
-  final Map<String, List<PropertyModel>> grid = {};
+  final grid = <String, List<PropertyModel>>{};
 
-  for (var p in properties) {
+  for (final p in properties) {
     if (p.lat == null || p.lng == null) continue;
 
     final latIndex = (p.lat! / gridSize).floor();

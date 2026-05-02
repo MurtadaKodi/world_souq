@@ -1,12 +1,10 @@
-// ignore_for_file: deprecated_member_use, unused_local_variable
-import 'package:flutter/material.dart';
+// ignore_for_file: inference_failure_on_instance_creation, deprecated_member_use, unused_local_variable
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 import 'package:market_world/features/realestate/models/property_model.dart';
 import 'package:market_world/features/realestate/pages/property_form_page.dart';
 import 'package:market_world/features/realestate/services/booking_service.dart';
 import 'package:market_world/features/realestate/services/property_storage_service.dart';
-// ignore: depend_on_referenced_packages
-import 'package:async/async.dart';
 
 class LandlordDashboardPage extends StatelessWidget {
   const LandlordDashboardPage({super.key});
@@ -30,7 +28,6 @@ class LandlordDashboardPage extends StatelessWidget {
         onPressed: () {
           Navigator.push(
             context,
-            // ignore: prefer_const_constructors
             MaterialPageRoute(builder: (_) => PropertyFormPage()),
           );
         },
@@ -58,15 +55,15 @@ class LandlordDashboardPage extends StatelessWidget {
                 sliver: SliverGrid(
                   delegate: SliverChildListDelegate([
                     _StatCard('عقاراتي', data.propertiesCount, Icons.home,
-                        Colors.indigo),
+                        Colors.indigo,),
                     _StatCard('الحجوزات', data.totalBookings, Icons.event,
-                        Colors.blue),
+                        Colors.blue,),
                     _StatCard('قيد الانتظار', data.pending,
-                        Icons.hourglass_bottom, Colors.orange),
+                        Icons.hourglass_bottom, Colors.orange,),
                     _StatCard(
-                        'مكتملة', data.completed, Icons.verified, Colors.teal),
+                        'مكتملة', data.completed, Icons.verified, Colors.teal,),
                     _StatCard('المفضلات', data.favorites, Icons.favorite,
-                        Colors.pink),
+                        Colors.pink,),
                   ]),
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 2,
@@ -145,12 +142,12 @@ class _DashboardHeader extends StatelessWidget {
 
 // 📊 2️⃣ Stat Card Widget
 class _StatCard extends StatelessWidget {
+
+  const _StatCard(this.label, this.value, this.icon, this.color);
   final String label;
   final int value;
   final IconData icon;
   final Color color;
-
-  const _StatCard(this.label, this.value, this.icon, this.color);
 
   @override
   Widget build(BuildContext context) {
@@ -192,15 +189,15 @@ class _StatCard extends StatelessWidget {
 // 📊 3️⃣ Grid الإحصائيات
 // ignore: unused_element
 class _StatsGrid extends StatelessWidget {
-  final int propertiesCount;
-  final Map<String, int> stats;
-  final int favoritesCount;
 
   const _StatsGrid({
     required this.propertiesCount,
     required this.stats,
     required this.favoritesCount,
   });
+  final int propertiesCount;
+  final Map<String, int> stats;
+  final int favoritesCount;
 
   @override
   Widget build(BuildContext context) {
@@ -215,9 +212,9 @@ class _StatsGrid extends StatelessWidget {
         _StatCard('عقاراتي', propertiesCount, Icons.home, Colors.indigo),
         _StatCard('الحجوزات', stats['total'] ?? 0, Icons.event, Colors.blue),
         _StatCard('قيد الانتظار', stats['pending'] ?? 0, Icons.hourglass_bottom,
-            Colors.orange),
+            Colors.orange,),
         _StatCard(
-            'مكتملة', stats['completed'] ?? 0, Icons.verified, Colors.teal),
+            'مكتملة', stats['completed'] ?? 0, Icons.verified, Colors.teal,),
         _StatCard('المفضلات', favoritesCount, Icons.favorite, Colors.pink),
       ],
     );
@@ -226,39 +223,21 @@ class _StatsGrid extends StatelessWidget {
 
 Stream<DashboardData> _dashboardStream(String uid) {
   final propertyService = PropertyStorageService();
-  final bookingService = BookingService();
 
   final propertiesStream = propertyService.streamMyPropertiesCount(uid);
 
-  final bookingStream = bookingService.streamOwnerBookingStats();
-
-  final favoritesStream = propertyService.streamFavoritesOnMyProperties(uid);
-
-  return StreamZip([
-    propertiesStream,
-    bookingStream,
-    favoritesStream,
-  ]).map((values) {
-    final propertiesCount = values[0] as int;
-    final stats = values[1] as Map<String, int>;
-    final favorites = values[2] as int;
-
+  return propertiesStream.map((count) {
     return DashboardData(
-      propertiesCount: propertiesCount,
-      totalBookings: stats['total'] ?? 0,
-      pending: stats['pending'] ?? 0,
-      completed: stats['completed'] ?? 0,
-      favorites: favorites,
+      propertiesCount: count,
+      totalBookings: 0,
+      pending: 0,
+      completed: 0,
+      favorites: 0,
     );
   });
 }
 
 class DashboardData {
-  final int propertiesCount;
-  final int totalBookings;
-  final int pending;
-  final int completed;
-  final int favorites;
 
   DashboardData({
     required this.propertiesCount,
@@ -267,13 +246,18 @@ class DashboardData {
     required this.completed,
     required this.favorites,
   });
+  final int propertiesCount;
+  final int totalBookings;
+  final int pending;
+  final int completed;
+  final int favorites;
 }
 
 // 💰 3️⃣ بطاقة الأرباح
 class _RevenueCard extends StatelessWidget {
-  final int totalBookings;
 
   const _RevenueCard({required this.totalBookings});
+  final int totalBookings;
 
   @override
   Widget build(BuildContext context) {
@@ -300,9 +284,9 @@ class _RevenueCard extends StatelessWidget {
                   fontWeight: FontWeight.bold,
                   color: Colors.green,
                 ),
-              )
+              ),
             ],
-          )
+          ),
         ],
       ),
     );
@@ -337,9 +321,9 @@ class _QuickActions extends StatelessWidget {
 
 // 🏆 5️⃣ أفضل العقارات
 class _TopFavorites extends StatelessWidget {
-  final String uid;
 
   const _TopFavorites({required this.uid});
+  final String uid;
 
   @override
   Widget build(BuildContext context) {
@@ -374,45 +358,65 @@ class _TopFavorites extends StatelessWidget {
                   final p = properties[index];
 
                   return Container(
-                    width: 220,
-                    margin: const EdgeInsets.only(right: 12),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(16),
-                      image: DecorationImage(
-                        image: NetworkImage(
-                          p.imageUrls.isNotEmpty
-                              ? p.imageUrls.first
-                              : 'https://via.placeholder.com/300',
-                        ),
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                    child: Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16),
-                        color: Colors.black.withOpacity(0.5),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Spacer(),
-                          Text(
-                            p.title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold),
-                          ),
-                          Text(
-                            '${p.price} ر.ق',
-                            style: const TextStyle(color: Colors.white70),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
+  width: 220,
+  margin: const EdgeInsets.only(right: 12),
+  decoration: BoxDecoration(
+    borderRadius: BorderRadius.circular(16),
+  ),
+  child: ClipRRect(
+    borderRadius: BorderRadius.circular(16),
+    child: Stack(
+      children: [
+        // 🖼️ الصورة
+        Positioned.fill(
+          child: (p.imageUrls != null && p.imageUrls!.isNotEmpty)
+              ? Image.network(
+                  p.imageUrls!.first,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => _placeholder(),
+                  loadingBuilder: (_, child, progress) {
+                    if (progress == null) return child;
+                    return _placeholder();
+                  },
+                )
+              : _placeholder(),
+        ),
+
+        // 🌑 overlay
+        Positioned.fill(
+          child: Container(
+            color: Colors.black.withOpacity(0.4),
+          ),
+        ),
+
+        // 📄 النص
+        Positioned(
+          left: 12,
+          right: 12,
+          bottom: 12,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                p.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Text(
+                '${p.price} ر.ق',
+                style: const TextStyle(color: Colors.white70),
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  ),
+);
                 },
               );
             },
@@ -421,4 +425,12 @@ class _TopFavorites extends StatelessWidget {
       ],
     );
   }
-}
+  
+Widget _placeholder() {
+  return Container(
+    color: Colors.grey[300],
+    child: const Center(
+      child: Icon(Icons.image, size: 40, color: Colors.grey),
+    ),
+  );
+}}

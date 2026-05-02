@@ -1,10 +1,33 @@
 {
   "project_info": {
     "project_number": "367421595104",
+    "firebase_url": "https://world-market-9774c-default-rtdb.asia-southeast1.firebasedatabase.app",
     "project_id": "world-market-9774c",
     "storage_bucket": "world-market-9774c.firebasestorage.app"
   },
   "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:367421595104:android:f02393fcf25cacba091f85",
+        "android_client_info": {
+          "package_name": "com.dari.realestate"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDujaPOxP5pEFDwK2pFiDZ0Ch6oJ-BQOqc"
+        },
+        {
+          "current_key": "AIzaSyAnTzNsKQW4slQ1Jq5HI63GUmXE4HYmU9o"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
     {
       "client_info": {
         "mobilesdk_app_id": "1:367421595104:android:e48a076b5a6fbb3f091f85",
@@ -16,6 +39,9 @@
       "api_key": [
         {
           "current_key": "AIzaSyDujaPOxP5pEFDwK2pFiDZ0Ch6oJ-BQOqc"
+        },
+        {
+          "current_key": "AIzaSyAnTzNsKQW4slQ1Jq5HI63GUmXE4HYmU9o"
         }
       ],
       "services": {

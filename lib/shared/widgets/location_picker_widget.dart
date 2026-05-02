@@ -1,18 +1,20 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class LocationPickerWidget extends StatefulWidget {
-  final LatLng? initialLocation;
   
   const LocationPickerWidget({
     super.key,
     this.initialLocation,
   });
+  final LatLng? initialLocation;
   // الحصول على الموقع الحالي
   static Future<Position?> getCurrentLocation() async {
     try {
-      LocationPermission permission = await Geolocator.checkPermission();
+      var permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
@@ -56,7 +58,7 @@ class _LocationPickerWidgetState extends State<LocationPickerWidget> {
     
     try {
       // التحقق من الصلاحيات
-      LocationPermission permission = await Geolocator.checkPermission();
+      var permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
@@ -79,7 +81,7 @@ class _LocationPickerWidgetState extends State<LocationPickerWidget> {
       }
 
       // الحصول على الموقع الحالي
-      Position position = await Geolocator.getCurrentPosition(
+      final position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
       );
 
@@ -140,7 +142,7 @@ class _LocationPickerWidgetState extends State<LocationPickerWidget> {
           GoogleMap(
             initialCameraPosition: CameraPosition(
               target: _selectedLocation ?? _defaultLocation,
-              zoom: 14.0,
+              zoom: 14,
             ),
             onMapCreated: (controller) => _controller = controller,
             onTap: _onMapTap,

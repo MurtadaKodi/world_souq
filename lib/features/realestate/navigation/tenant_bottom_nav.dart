@@ -1,14 +1,14 @@
-import 'package:flutter/material.dart';
-import '../pages/properties_list_page.dart';
-import '../pages/bookings_page.dart';
-import '../pages/properties_map_page.dart';
-import '../../shared_pages/profile_page.dart';
-import '../pages/booking_details_page.dart';
+// ignore_for_file: inference_failure_on_function_invocation
 
-class TenantBottomNav extends StatefulWidget {
-  final int initialIndex;
-  final String? openBookingId;
-  final String? focusPropertyId; // ✅ جديد
+import 'package:flutter/material.dart';
+import 'package:market_world/core/constants/enums.dart';
+import 'package:market_world/features/realestate/pages/booking_details_page.dart';
+import 'package:market_world/features/realestate/pages/bookings_page.dart';
+import 'package:market_world/features/realestate/pages/properties_list_page.dart';
+import 'package:market_world/features/realestate/pages/properties_map_page.dart';
+import 'package:market_world/features/shared_pages/profile_page.dart';
+
+class TenantBottomNav extends StatefulWidget { // ✅ جديد
 
   const TenantBottomNav({
     super.key,
@@ -16,7 +16,9 @@ class TenantBottomNav extends StatefulWidget {
     this.openBookingId,
     this.focusPropertyId,
   });
-
+  final int initialIndex;
+  final String? openBookingId;
+  final String? focusPropertyId;
 
   @override
   State<TenantBottomNav> createState() => _TenantBottomNavState();
@@ -24,66 +26,69 @@ class TenantBottomNav extends StatefulWidget {
 
 class _TenantBottomNavState extends State<TenantBottomNav> {
   late int _index;
+  late final List<Widget> _pages;
 
   @override
   void initState() {
     super.initState();
+
     _index = widget.initialIndex;
 
-    // ⭐ فتح تفاصيل الحجز مباشرة إذا وُجد
+    _pages = [
+      PropertiesMapPage(
+        focusPropertyId: widget.focusPropertyId,
+        role: UserRole.tenant,
+        initialIndex: 0,
+      ),
+      const PropertiesListPage(),
+      const BookingsPage(),
+      const ProfilePage(isLandlord: false),
+    ];
+
+    // فتح تفاصيل الحجز
     if (widget.openBookingId != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-       if (widget.openBookingId != null) {
-  WidgetsBinding.instance.addPostFrameCallback((_) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (_) => BookingDetailsPage(
-        bookingId: widget.openBookingId!,
-        isLandlord: false,
-      ),
-    );
-  });
-}
+        showModalBottomSheet(
+          context: context,
+          isScrollControlled: true,
+          builder: (_) => BookingDetailsPage(
+            bookingId: widget.openBookingId!,
+            isLandlord: false,
+          ),
+        );
       });
     }
   }
 
-  List<Widget> get _pages => [
-  PropertiesMapPage(
-    focusPropertyId: widget.focusPropertyId, // ✅ تمرير التركيز
-  ),
-  const PropertiesListPage(),
-  const BookingsPage(),
-  const ProfilePage(isLandlord: false),
-];
-
-
-
   @override
   Widget build(BuildContext context) {
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
+
     return Scaffold(
-      body: _pages[_index],
+      body: IndexedStack(
+        index: _index,
+        children: _pages,
+      ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _index,
         onTap: (i) => setState(() => _index = i),
         type: BottomNavigationBarType.fixed,
-        items: const [
+        items: [
           BottomNavigationBarItem(
-            icon: Icon(Icons.map_outlined),
-            label: 'الخريطة',
+            icon: const Icon(Icons.map_outlined),
+            label: isArabic ? 'الخريطة' : 'Map',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.list),
-            label: 'القائمة',
+            icon: const Icon(Icons.list),
+            label: isArabic ? 'القائمة' : 'List',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.event_note),
-            label: 'حجوزاتي',
-          ),
+            icon: const Icon(Icons.event_note),
+            label: isArabic ? 'حجوزاتي' : 'My Bookings',
+          ),  
           BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline),
-            label: 'الحساب',
+            icon: const Icon(Icons.person_outline),
+            label: isArabic ? 'الحساب' : 'Account',
           ),
         ],
       ),

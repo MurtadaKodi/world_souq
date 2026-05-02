@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:market_world/core/services/role_cache_service.dart';
 import 'package:market_world/features/auth/auth_service.dart';
-import '../services/role_cache_service.dart';
 
 class AuthProvider extends ChangeNotifier {
-  final AuthService _authService;
 
   AuthProvider(this._authService) {
     _authService.authStateChanges().listen((_) {
       notifyListeners();
     });
   }
+  final AuthService _authService;
   Future<void> ensureUserIsActive() async {
   await _authService.ensureUserIsActive();
 }

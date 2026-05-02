@@ -2,20 +2,19 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:latlong2/latlong.dart';
 
 class LocationPickerMap extends StatefulWidget {
+
+  const LocationPickerMap({
+    required this.onPicked, super.key,
+    this.initialLat,
+    this.initialLng,
+  });
   final double? initialLat;
   final double? initialLng;
   final void Function(LatLng point) onPicked;
-
-  const LocationPickerMap({
-    super.key,
-    this.initialLat,
-    this.initialLng,
-    required this.onPicked,
-  });
 
   @override
   State<LocationPickerMap> createState() => _LocationPickerMapState();

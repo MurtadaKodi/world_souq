@@ -2,28 +2,29 @@ import 'package:flutter/material.dart';
 import 'package:market_world/core/constants/enums.dart';
 import 'package:market_world/features/realestate/pages/booking_details_page.dart';
 import 'package:market_world/features/realestate/pages/bookings_page.dart';
+// import 'package:market_world/features/realestate/pages/booking_details_page.dart';
+import 'package:market_world/features/realestate/pages/favorites_page.dart';
+import 'package:market_world/features/realestate/pages/landlord_dashboard_page.dart';
 import 'package:market_world/features/realestate/pages/my_properties_page.dart';
 import 'package:market_world/features/realestate/pages/owner_bookings_page.dart';
 import 'package:market_world/features/realestate/pages/properties_page.dart';
 import 'package:market_world/features/realestate/services/favorites_service.dart';
 import 'package:market_world/features/shared_pages/profile_page.dart';
-import 'package:market_world/features/realestate/pages/landlord_dashboard_page.dart';
-// import 'package:market_world/features/realestate/pages/booking_details_page.dart';
-import 'package:market_world/features/realestate/pages/favorites_page.dart';
 
 class MainBottomNav extends StatefulWidget {
+
+  const MainBottomNav({
+    required this.role, super.key,
+    this.initialIndex = 0,
+    this.openBookingId,
+    this.focusPropertyId,
+  });
   final UserRole role;
 
   /// ⭐ مهم للإشعارات
   final int initialIndex;
   final String? openBookingId;
-
-  const MainBottomNav({
-    super.key,
-    required this.role,
-    this.initialIndex = 0,
-    this.openBookingId,
-  });
+  final String? focusPropertyId;
 
   @override
   State<MainBottomNav> createState() => _MainBottomNavState();
@@ -59,7 +60,7 @@ class _MainBottomNavState extends State<MainBottomNav> {
   List<Widget> get pages {
     if (widget.role == UserRole.tenant) {
       return [
-        const PropertiesPage(), // بحث
+        PropertiesPage(focusPropertyId: widget.focusPropertyId), // بحث
         const BookingsPage(), // حجوزاتي
         const ProfilePage(isLandlord: false),
         FavoritesPage(), // المفضلة

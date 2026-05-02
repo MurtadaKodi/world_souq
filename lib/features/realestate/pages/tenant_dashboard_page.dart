@@ -1,7 +1,7 @@
-import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
+import 'package:market_world/features/realestate/pages/bookings_page.dart';
 import 'package:market_world/features/realestate/services/booking_service.dart';
-import 'bookings_page.dart';
 
 class TenantDashboardPage extends StatelessWidget {
   const TenantDashboardPage({super.key});
@@ -89,10 +89,6 @@ class TenantDashboardPage extends StatelessWidget {
   }
 }
 class _StatCard extends StatelessWidget {
-  final String title;
-  final String value;
-  final IconData icon;
-  final Color color;
 
   const _StatCard({
     required this.title,
@@ -100,6 +96,10 @@ class _StatCard extends StatelessWidget {
     required this.icon,
     required this.color,
   });
+  final String title;
+  final String value;
+  final IconData icon;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
@@ -132,15 +132,15 @@ class _StatCard extends StatelessWidget {
 }
 
 class _ActionCard extends StatelessWidget {
-  final String title;
-  final IconData icon;
-  final VoidCallback onTap;
 
   const _ActionCard({
     required this.title,
     required this.icon,
     required this.onTap,
   });
+  final String title;
+  final IconData icon;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {

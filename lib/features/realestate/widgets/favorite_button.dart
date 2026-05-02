@@ -1,10 +1,12 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
 import 'package:market_world/features/realestate/services/favorites_service.dart';
 
 class FavoriteButton extends StatelessWidget {
-  final String propertyId;
 
-  FavoriteButton({super.key, required this.propertyId});
+  FavoriteButton({required this.propertyId, super.key});
+  final String propertyId;
 
   final FavoritesService _favoritesService =
       FavoritesService();

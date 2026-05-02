@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
 
 class MapCard extends StatefulWidget {
-  final String title;
-  final Widget child;
 
   const MapCard({
-    super.key,
-    required this.title,
-    required this.child,
+    required this.title, required this.child, super.key,
   });
+  final String title;
+  final Widget child;
 
   @override
   State<MapCard> createState() => _MapCardState();

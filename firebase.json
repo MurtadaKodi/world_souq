@@ -57,8 +57,20 @@
   },
   "functions": [
     {
-      "source": "functions",
       "codebase": "default",
+      "disallowLegacyRuntimeConfig": true,
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local"
+      ],
+      "source": "functions"
+    },
+    {
+      "source": "booking_notifications",
+      "codebase": "booking_notifications",
       "disallowLegacyRuntimeConfig": true,
       "ignore": [
         "node_modules",

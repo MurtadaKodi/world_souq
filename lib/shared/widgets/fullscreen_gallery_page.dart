@@ -1,17 +1,14 @@
 import 'package:flutter/material.dart';
-import 'adaptive_image.dart';
+import 'package:market_world/shared/widgets/adaptive_image.dart';
 
 class FullscreenGalleryPage extends StatefulWidget {
+
+  const FullscreenGalleryPage({
+    required this.images, required this.initialIndex, required this.heroTagPrefix, super.key,
+  });
   final List<String> images;
   final int initialIndex;
   final String heroTagPrefix;
-
-  const FullscreenGalleryPage({
-    super.key,
-    required this.images,
-    required this.initialIndex,
-    required this.heroTagPrefix,
-  });
 
   @override
   State<FullscreenGalleryPage> createState() =>

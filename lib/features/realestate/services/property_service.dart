@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:market_world/core/services/storage_service.dart';
-import '../models/property_model.dart';
+import 'package:market_world/features/realestate/models/property_model.dart';
 
 class PropertyService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -30,7 +30,7 @@ Future<void> createProperty({
   final propertyId = docRef.id;
 
   final storageService = StorageService();
-  List<String> imageUrls = [];
+  final imageUrls = <String>[];
 
   // 🔥 رفع الصور أولاً
   for (final image in images) {
@@ -68,7 +68,7 @@ Future<void> createProperty({
       .where(FieldPath.documentId, whereIn: ids)
       .snapshots()
       .map((snapshot) =>
-          snapshot.docs.map((doc) => PropertyModel.fromDoc(doc)).toList());
+          snapshot.docs.map(PropertyModel.fromDoc).toList(),);
 }
 
   /// ===============================
@@ -76,10 +76,10 @@ Future<void> createProperty({
   /// 🔹 تحويل Snapshot إلى List<PropertyModel>
   /// ===============================
   List<PropertyModel> _mapSnapshotToProperties(
-      QuerySnapshot snapshot) {
+      QuerySnapshot snapshot,) {
     return snapshot.docs
         .map(
-          (doc) => PropertyModel.fromDoc(doc),
+          PropertyModel.fromDoc,
         )
         .toList();
   }

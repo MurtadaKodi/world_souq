@@ -1,18 +1,16 @@
 import 'package:flutter/material.dart';
 
 class EmptyState extends StatelessWidget {
+
+  const EmptyState({
+    required this.title, required this.subtitle, super.key,
+    this.icon = Icons.inbox_outlined,
+    this.action,
+  });
   final String title;
   final String subtitle;
   final IconData icon;
   final Widget? action;
-
-  const EmptyState(String context, {
-    super.key,
-    required this.title,
-    required this.subtitle,
-    this.icon = Icons.inbox_outlined,
-    this.action,
-  });
 
   @override
   Widget build(BuildContext context) {

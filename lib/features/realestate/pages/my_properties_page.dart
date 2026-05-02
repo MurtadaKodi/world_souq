@@ -1,11 +1,11 @@
-// ignore_for_file: prefer_const_constructors
 
-import 'package:flutter/material.dart';
+// ignore_for_file: inference_failure_on_instance_creation
+
 import 'package:firebase_auth/firebase_auth.dart';
-
-import '../models/property_model.dart';
-import '../services/property_storage_service.dart';
-import 'property_form_page.dart';
+import 'package:flutter/material.dart';
+import 'package:market_world/features/realestate/models/property_model.dart';
+import 'package:market_world/features/realestate/pages/property_form_page.dart';
+import 'package:market_world/features/realestate/services/property_storage_service.dart';
 
 class MyPropertiesPage extends StatelessWidget {
   const MyPropertiesPage({super.key});

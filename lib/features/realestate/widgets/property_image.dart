@@ -3,20 +3,19 @@ import 'package:flutter/material.dart';
 import 'package:market_world/features/storage/firebase_storage_service.dart';
 
 class PropertyImage extends StatelessWidget {
-  final String path; // ✅ Storage path مثل: properties/<id>/<file>.jpg
-  final BorderRadius? radius;
-  final BoxFit fit;
-  final double? width;
-  final double? height;
 
   const PropertyImage({
-    super.key,
-    required this.path,
+    required this.path, super.key,
     this.radius,
     this.fit = BoxFit.cover,
     this.width,
     this.height,
   });
+  final String path; // ✅ Storage path مثل: properties/<id>/<file>.jpg
+  final BorderRadius? radius;
+  final BoxFit fit;
+  final double? width;
+  final double? height;
 
   @override
   Widget build(BuildContext context) {
@@ -55,10 +54,10 @@ class PropertyImage extends StatelessWidget {
 }
 
 class _ShimmerBox extends StatelessWidget {
-  final double? width;
-  final double? height;
 
   const _ShimmerBox({this.width, this.height});
+  final double? width;
+  final double? height;
 
   @override
   Widget build(BuildContext context) {

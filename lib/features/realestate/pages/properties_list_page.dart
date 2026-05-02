@@ -1,18 +1,21 @@
+// ignore_for_file: inference_failure_on_function_invocation, inference_failure_on_instance_creation
+
 import 'package:flutter/material.dart';
+import 'package:market_world/features/realestate/models/property_model.dart';
 import 'package:market_world/features/realestate/navigation/tenant_bottom_nav.dart';
-import '../models/property_model.dart';
-import '../services/property_service.dart';
-import './property_details_page.dart';
+import 'package:market_world/features/realestate/pages/property_details_page.dart';
+import 'package:market_world/features/realestate/services/property_service.dart';
+import 'package:market_world/features/realestate/widgets/booking_dialog.dart';
 
 class PropertiesListPage extends StatelessWidget {
   const PropertiesListPage({super.key});
 
-@override
-Widget build(BuildContext context) {
-  final service = PropertyService();
-  return Scaffold(
+  @override
+  Widget build(BuildContext context) {
+    final service = PropertyService();
+    return Scaffold(
       appBar: AppBar(
-        title: const Text('العقارات'),
+        title: Localizations.localeOf(context).languageCode == 'ar' ? const Text('قائمة العقارات') : const Text('Properties List'),
         centerTitle: true,
       ),
       body: StreamBuilder<List<PropertyModel>>(
@@ -43,9 +46,9 @@ Widget build(BuildContext context) {
 }
 
 class _PropertyCard extends StatelessWidget {
-  final PropertyModel property;
 
   const _PropertyCard({required this.property});
+  final PropertyModel property;
 
   /// 🔹 Method لفتح شاشة التفاصيل
   void _openDetails(BuildContext context) {
@@ -66,7 +69,6 @@ class _PropertyCard extends StatelessWidget {
               context,
               MaterialPageRoute(
                 builder: (_) => TenantBottomNav(
-                  initialIndex: 0,
                   focusPropertyId: property.id,
                 ),
               ),
@@ -76,10 +78,16 @@ class _PropertyCard extends StatelessWidget {
 
           // 🔥 الانتقال إلى صفحة الحجز
           onBook: () {
-            Navigator.pushNamed(
-              context,
-              '/booking',
-              arguments: property.id,
+            showModalBottomSheet(
+              context: context,
+              isScrollControlled: true,
+              backgroundColor: Colors.transparent,
+              builder: (_) => BookingDialog(
+                property: property,
+                propertyId: property.id,
+                propertyName: property.title,
+                ownerId: property.ownerId,
+              ),
             );
           },
         ),
@@ -101,21 +109,21 @@ class _PropertyCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-ClipRRect(
-  borderRadius: const BorderRadius.vertical(
-    top: Radius.circular(16),
-  ),
-  child: Image.network(
-    (property.imageUrls?.isNotEmpty ?? false)
-        ? property.imageUrls!.first
-        : (property.mainImage ?? ''),
-    height: 180,
-    width: double.infinity,
-    fit: BoxFit.cover,
-    errorBuilder: (_, __, ___) =>
-        const Center(child: Icon(Icons.image)),
-  ),
-),
+            ClipRRect(
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(16),
+              ),
+              child: Image.network(
+                (property.imageUrls?.isNotEmpty ?? false)
+                    ? property.imageUrls!.first
+                    : (property.mainImage ?? ''),
+                height: 180,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) =>
+                    const Center(child: Icon(Icons.image)),
+              ),
+            ),
             Padding(
               padding: const EdgeInsets.all(14),
               child: Column(

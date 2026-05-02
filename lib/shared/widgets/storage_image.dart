@@ -1,16 +1,15 @@
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:flutter/material.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/material.dart';
 
 class StorageImage extends StatelessWidget {
-  final String path;
-  final BoxFit fit;
 
   const StorageImage({
-    super.key,
-    required this.path,
+    required this.path, super.key,
     this.fit = BoxFit.cover,
   });
+  final String path;
+  final BoxFit fit;
 
   Future<String> _resolveUrl() async {
     if (path.startsWith('http')) return path;

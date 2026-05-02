@@ -1,14 +1,14 @@
-// ignore_for_file: deprecated_member_use
+// ignore_for_file: cascade_invocations, avoid_positional_boolean_parameters, inference_failure_on_instance_creation, deprecated_member_use
 
 import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:market_world/core/providers/language_provider.dart';
+import 'package:market_world/features/admin/admin_login_page.dart';
+import 'package:market_world/features/landing/landing_page.dart';
 import 'package:market_world/shared/widgets/app_app_bar.dart';
 import 'package:market_world/shared/widgets/reusble_glass_button.dart';
-import '../landing/landing_page.dart';
-import '../admin/admin_login_page.dart';
 import 'package:provider/provider.dart';
 
 class EntryGatePage extends StatefulWidget {
@@ -18,8 +18,7 @@ class EntryGatePage extends StatefulWidget {
   State<EntryGatePage> createState() => _EntryGatePageState();
 }
 
-class _EntryGatePageState extends State<EntryGatePage>
-    with SingleTickerProviderStateMixin {
+class _EntryGatePageState extends State<EntryGatePage> with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> fadeAnim;
   late Animation<Offset> slideAnim;
@@ -74,7 +73,6 @@ class _EntryGatePageState extends State<EntryGatePage>
 
   @override
   Widget build(BuildContext context) {
-    
     final size = MediaQuery.of(context).size;
     final isSmall = size.height < 700;
 
@@ -83,9 +81,7 @@ class _EntryGatePageState extends State<EntryGatePage>
 
     return Scaffold(
       appBar: AppAppBar(
-        title: context.watch<LanguageProvider>().isArabic
-            ? 'بوابة الدخول'
-            : 'Entry Gate',
+        title: context.watch<LanguageProvider>().isArabic ? 'بوابة الدخول' : 'Entry Gate',
         showBack: false,
       ),
       backgroundColor: Colors.black,
@@ -129,9 +125,11 @@ class _EntryGatePageState extends State<EntryGatePage>
                     ),
                     child: IntrinsicHeight(
                       child: Center(
-                          child: ConstrainedBox(
-                              constraints: const BoxConstraints(maxWidth: 520),
-                              child: const Column())),
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 520),
+                          child: const Column(),
+                        ),
+                      ),
                     ),
                   ),
                 );
@@ -173,10 +171,14 @@ class _EntryGatePageState extends State<EntryGatePage>
                         constraints: const BoxConstraints(maxWidth: 520),
                         child: Column(
                           children: [
-/// ⏰ Dynamic Date & Time
-buildDateTime(context, context.watch<LanguageProvider>().isArabic, now),
+                            /// ⏰ Dynamic Date & Time
+                            buildDateTime(
+                              context,
+                              context.watch<LanguageProvider>().isArabic,
+                              now,
+                            ),
 
-SizedBox(height: isSmall ? 20 : 40),
+                            SizedBox(height: isSmall ? 20 : 40),
                           ],
                         ),
                       ),
@@ -208,8 +210,7 @@ SizedBox(height: isSmall ? 20 : 40),
                                     ),
                                     boxShadow: [
                                       BoxShadow(
-                                        color:
-                                            Colors.blueAccent.withOpacity(0.4),
+                                        color: Colors.blueAccent.withOpacity(0.4),
                                         blurRadius: 30,
                                         spreadRadius: 2,
                                       ),
@@ -221,9 +222,7 @@ SizedBox(height: isSmall ? 20 : 40),
 
                                 /// 👋 WELCOME TEXT
                                 Text(
-                                  context.watch<LanguageProvider>().isArabic
-                                      ? 'مرحبا'
-                                      : 'Welcome',
+                                  context.watch<LanguageProvider>().isArabic ? 'مرحبا' : 'Welcome',
                                   style: const TextStyle(
                                     color: Colors.white70,
                                     fontSize: 18,
@@ -232,8 +231,8 @@ SizedBox(height: isSmall ? 20 : 40),
                                 SizedBox(height: isSmall ? 20 : 40),
                                 Text(
                                   context.watch<LanguageProvider>().isArabic
-                                      ? 'سوق العالم'
-                                      : 'Market Souq',
+                                      ? 'داري العقارية'
+                                      : 'Dari Real Estate',
                                   style: const TextStyle(
                                     color: Colors.white,
                                     fontSize: 28,
@@ -259,20 +258,24 @@ SizedBox(height: isSmall ? 20 : 40),
                           children: [
                             /// 👤 USER
                             GlassButton(
+                              width: (size.width * 0.8).toInt(),
                               text: context.watch<LanguageProvider>().isArabic
                                   ? 'الدخول كمستخدم'
-                                  : 'Continue as User',
+                                  : 'User Login',
                               onPressed: () {
                                 Navigator.pushReplacement(
                                   context,
                                   MaterialPageRoute(
-                                      builder: (_) => const LandingPage()),
+                                    builder: (_) => const LandingPage(),
+                                  ),
                                 );
                               },
                             ),
                             SizedBox(height: isSmall ? 30 : 50),
+
                             /// 👑 ADMIN
                             GlassButton(
+                              width: (size.width * 0.8).toInt(),
                               primary: false,
                               text: context.watch<LanguageProvider>().isArabic
                                   ? 'دخول المدير'
@@ -281,13 +284,12 @@ SizedBox(height: isSmall ? 20 : 40),
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                      builder: (_) => const AdminLoginPage()),
+                                    builder: (_) => const AdminLoginPage(),
+                                  ),
                                 );
                               },
                             ),
                             SizedBox(width: isSmall ? 10 : 20),
-                        
-                            
                           ],
                         ),
                       ),
@@ -317,9 +319,7 @@ SizedBox(height: isSmall ? 20 : 40),
 
     final timeText = DateFormat('hh:mm:ss a').format(now);
 
-    final color = isNight
-        ? Colors.indigo.shade300
-        : Colors.orange.shade700;
+    final color = isNight ? Colors.indigo.shade300 : Colors.orange.shade700;
 
     return MouseRegion(
       cursor: SystemMouseCursors.click,
@@ -347,8 +347,8 @@ SizedBox(height: isSmall ? 20 : 40),
 }
 
 class AnimatedTopWaveClipper extends CustomClipper<Path> {
-  final double progress;
   AnimatedTopWaveClipper(this.progress);
+  final double progress;
 
   @override
   Path getClip(Size size) {

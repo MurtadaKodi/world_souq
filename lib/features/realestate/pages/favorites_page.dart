@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import '../services/favorites_service.dart';
-import '../services/property_service.dart';
+import 'package:market_world/features/realestate/services/favorites_service.dart';
+import 'package:market_world/features/realestate/services/property_service.dart';
 
 class FavoritesPage extends StatelessWidget {
-  final FavoritesService _favoritesService = FavoritesService();
-  final PropertyService _propertyService = PropertyService();
 
   FavoritesPage({super.key});
+  final FavoritesService _favoritesService = FavoritesService();
+  final PropertyService _propertyService = PropertyService();
 
   @override
   Widget build(BuildContext context) {
@@ -33,7 +33,7 @@ class FavoritesPage extends StatelessWidget {
             builder: (context, propertySnapshot) {
               if (!propertySnapshot.hasData) {
                 return const Center(
-                    child: CircularProgressIndicator());
+                    child: CircularProgressIndicator(),);
               }
 
               final properties = propertySnapshot.data!;
@@ -46,7 +46,7 @@ class FavoritesPage extends StatelessWidget {
                   return ListTile(
                     title: Text(property.title),
                     subtitle: Text(
-                        '${property.price} ${property.currency}'),
+                        '${property.price} ${property.currency}',),
                   );
                 },
               );

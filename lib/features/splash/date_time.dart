@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-// ignore: depend_on_referenced_packages
 import 'package:intl/intl.dart';
 import 'package:syncfusion_flutter_datepicker/datepicker.dart';
 
@@ -39,10 +38,11 @@ class DateTimeWidgetState extends State<DateTimeWidget> {
     /// multi range.
     setState(() {
       if (args.value is PickerDateRange) {
+        final pickerDateRange = args.value as PickerDateRange;
         _range =
-            '${DateFormat('dd/MM/yyyy').format(args.value.startDate)} -'
+            '${DateFormat('dd/MM/yyyy').format(pickerDateRange.startDate!)} -'
             // ignore: lines_longer_than_80_chars
-            ' ${DateFormat('dd/MM/yyyy').format(args.value.endDate ?? args.value.startDate)}';
+            ' ${DateFormat('dd/MM/yyyy').format(pickerDateRange.endDate ?? pickerDateRange.startDate!)}';
       } else if (args.value is DateTime) {
         _selectedDate = args.value.toString();
       } else if (args.value is List<DateTime>) {

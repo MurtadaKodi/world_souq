@@ -1,15 +1,20 @@
-// ignore_for_file: unused_field
+// ignore_for_file: deprecated_member_use, unused_field
 
 import 'package:flutter/material.dart';
+import 'package:market_world/features/realestate/models/property_model.dart';
 import 'package:market_world/features/realestate/navigation/tenant_bottom_nav.dart';
+import 'package:market_world/features/realestate/services/property_storage_service.dart';
 import 'package:market_world/features/realestate/widgets/favorite_button.dart';
 import 'package:market_world/features/storage/firebase_storage_service.dart';
-import '../models/property_model.dart';
-import '../services/property_storage_service.dart';
-import '../../../shared/widgets/property_skeleton.dart';
+import 'package:market_world/shared/widgets/property_skeleton.dart';
 
 class PropertiesPage extends StatefulWidget {
-  const PropertiesPage({super.key});
+
+  const PropertiesPage({
+    super.key,
+    this.focusPropertyId,
+  });
+  final String? focusPropertyId;
 
   @override
   State<PropertiesPage> createState() => _PropertiesPageState();
@@ -19,6 +24,7 @@ class _PropertiesPageState extends State<PropertiesPage> {
   final FirebaseStorageService _storage = FirebaseStorageService();
   final PropertyStorageService _service = PropertyStorageService();
   final String _searchText = '';
+  String? get focusPropertyId => widget.focusPropertyId;
 
 String? _cover(PropertyModel p) {
   if (p.mediaPaths.isNotEmpty) return p.mediaPaths.first;
@@ -101,17 +107,13 @@ String? _cover(PropertyModel p) {
 /// ================= PROPERTY CARD ========================
 /// =======================================================
 class PropertyCard extends StatelessWidget {
+
+  const PropertyCard({required this.onTap, required this.image, required this.overlay, required this.body, super.key,
+  });
   final VoidCallback onTap;
   final Widget image;
   final Widget overlay;
   final Widget body;
-
-  const PropertyCard({super.key, 
-    required this.onTap,
-    required this.image,
-    required this.overlay,
-    required this.body,
-  });
 
   @override
   Widget build(BuildContext context) {
@@ -164,13 +166,13 @@ class PropertyCard extends StatelessWidget {
 /// ================= GRID ITEM ============================
 /// =======================================================
 class _PropertyGridItem extends StatefulWidget {
-  final PropertyModel property;
-  final String imagePath;
 
   const _PropertyGridItem({
     required this.property,
     required this.imagePath,
   });
+  final PropertyModel property;
+  final String imagePath;
 
   @override
   State<_PropertyGridItem> createState() => _PropertyGridItemState();
@@ -206,7 +208,6 @@ class _PropertyGridItemState extends State<_PropertyGridItem> {
     context,
     MaterialPageRoute(
       builder: (_) => TenantBottomNav(
-        initialIndex: 0,
         focusPropertyId: widget.property.id,
       ),
     ),
@@ -216,7 +217,7 @@ class _PropertyGridItemState extends State<_PropertyGridItem> {
 
 
       image: _url == null
-          ? Container(
+          ? ColoredBox(
               color: Colors.grey.shade200,
               child: const Center(child: CircularProgressIndicator()),
             )

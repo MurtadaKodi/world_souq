@@ -1,7 +1,4 @@
 class UserProfileModel {
-  final String uid;
-  final String name;
-  final String phone;
 
   UserProfileModel({
     required this.uid,
@@ -12,8 +9,11 @@ class UserProfileModel {
   factory UserProfileModel.fromJson(String uid, Map<String, dynamic> data) {
     return UserProfileModel(
       uid: uid,
-      name: data['name'] ?? '',
-      phone: data['phone'] ?? '',
+      name: (data['name'] as String?) ?? '',
+      phone: (data['phone'] as String?) ?? '',
     );
   }
+  final String uid;
+  final String name;
+  final String phone;
 }

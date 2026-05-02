@@ -2,10 +2,9 @@
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:market_world/core/providers/language_provider.dart';
+import 'package:market_world/shared/widgets/app_app_bar.dart';
 import 'package:provider/provider.dart';
-
-import '../../core/providers/language_provider.dart';
-import '../../shared/widgets/app_app_bar.dart';
 
 class AdminUsersPage extends StatelessWidget {
   const AdminUsersPage({super.key});
@@ -36,7 +35,7 @@ class AdminUsersPage extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   const Icon(Icons.inbox_outlined,
-                      size: 48, color: Colors.grey),
+                      size: 48, color: Colors.grey,),
                   const SizedBox(height: 12),
                   Text(
                     isArabic ? 'لا توجد بيانات بعد' : 'No users found',
@@ -54,12 +53,12 @@ class AdminUsersPage extends StatelessWidget {
             separatorBuilder: (_, __) => const Divider(height: 1),
             itemBuilder: (context, index) {
               final doc = docs[index];
-              final data = doc.data() as Map<String, dynamic>;
+              final data = doc.data()! as Map<String, dynamic>;
 
-              final bool isActive = data['active'] != false;
-              final bool isAdmin = data['isAdmin'] == true;
-              final String role = data['role'] ?? 'unknown';
-              final String email =
+              final isActive = data['active'] != false;
+              final isAdmin = data['isAdmin'] == true;
+              final role = (data['role'] as String?) ?? 'unknown';
+              final email =
                   (data['email'] as String?) ??
                   (isArabic ? 'مستخدم بدون بريد' : 'Anonymous user');
 

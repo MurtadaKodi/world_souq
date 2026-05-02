@@ -3,16 +3,15 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 class AdaptiveImage extends StatelessWidget {
-  final String path;
-  final BoxFit fit;
-  final Widget Function(BuildContext, Object, StackTrace?)? errorBuilder;
 
   const AdaptiveImage({
-    super.key,
-    required this.path,
+    required this.path, super.key,
     this.fit = BoxFit.cover,
     this.errorBuilder,
   });
+  final String path;
+  final BoxFit fit;
+  final Widget Function(BuildContext, Object, StackTrace?)? errorBuilder;
 
   @override
   Widget build(BuildContext context) {

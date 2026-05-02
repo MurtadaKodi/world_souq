@@ -1,8 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../models/property_model.dart';
+import 'package:market_world/features/realestate/models/property_model.dart';
 
 class PropertyStorageService {
-  final _db = FirebaseFirestore.instance;
+  final FirebaseFirestore _db = FirebaseFirestore.instance;
 
   String newPropertyId() =>
       _db.collection('properties').doc().id;
@@ -20,7 +20,7 @@ Future<int> countFavoritesOnMyProperties(String uid) async {
       .where('ownerId', isEqualTo: uid)
       .get();
 
-  int total = 0;
+  var total = 0;
 
   for (final property in properties.docs) {
     final favs = await _db
@@ -53,7 +53,7 @@ Future<int> countFavoritesOnMyProperties(String uid) async {
         .where('ownerId', isEqualTo: ownerId)
         .snapshots()
         .map(
-          (s) => s.docs.map((d) => PropertyModel.fromDoc(d)).toList(),
+          (s) => s.docs.map(PropertyModel.fromDoc).toList(),
         );
   }
 
@@ -63,7 +63,7 @@ Future<int> countFavoritesOnMyProperties(String uid) async {
         .orderBy('createdAt', descending: true)
         .snapshots()
         .map(
-          (s) => s.docs.map((d) => PropertyModel.fromDoc(d)).toList(),
+          (s) => s.docs.map(PropertyModel.fromDoc).toList(),
         );
   }
   Stream<int> streamFavoritesOnMyProperties(String uid) {
@@ -73,7 +73,7 @@ Future<int> countFavoritesOnMyProperties(String uid) async {
       .snapshots()
       .asyncMap((propertiesSnap) async {
 
-    int total = 0;
+    var total = 0;
 
     for (final property in propertiesSnap.docs) {
       final favSnap = await _db
@@ -117,11 +117,11 @@ Future<int> countFavoritesOnMyProperties(String uid) async {
       .orderBy('createdAt', descending: true)
       .snapshots()
       .map(
-        (s) => s.docs.map((d) => PropertyModel.fromDoc(d)).toList(),
+        (s) => s.docs.map(PropertyModel.fromDoc).toList(),
       );
 }
 List<String> buildSearchKeywords(PropertyModel p) {
-  final Set<String> buffer = {};
+  final buffer = <String>{};
 
   void addValue(String? value) {
     if (value == null || value.trim().isEmpty) return;
@@ -159,7 +159,7 @@ List<String> buildSearchKeywords(PropertyModel p) {
         .where('ownerId', isEqualTo: uid)
         .snapshots()
         .map(
-          (s) => s.docs.map((d) => PropertyModel.fromDoc(d)).toList(),
+          (s) => s.docs.map(PropertyModel.fromDoc).toList(),
         );
   }
 
@@ -169,7 +169,7 @@ List<String> buildSearchKeywords(PropertyModel p) {
         .where('ownerId', isEqualTo: ownerId)
         .snapshots()
         .map(
-          (s) => s.docs.map((d) => PropertyModel.fromDoc(d)).toList(),
+          (s) => s.docs.map(PropertyModel.fromDoc).toList(),
         );
   }
 }

@@ -1,34 +1,29 @@
-// ignore_for_file: deprecated_member_use
+// lib/features/auth/login_page.dart
 
-import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+// ignore_for_file: deprecated_member_use, inference_failure_on_instance_creation, inference_failure_on_function_invocation, avoid_print
+
+import 'dart:ui';
+
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:market_world/features/shared/services/user_profile_service.dart';
-import 'package:provider/provider.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/material.dart';
+import 'package:market_world/core/constants/enums.dart';
+import 'package:market_world/core/providers/language_provider.dart';
+import 'package:market_world/features/auth/register_page.dart';
 import 'package:market_world/features/realestate/navigation/landlord_bottom_nav.dart';
 import 'package:market_world/features/realestate/navigation/tenant_bottom_nav.dart';
-import '../../core/constants/enums.dart';
-import '../../core/providers/language_provider.dart';
-import 'register_page.dart';
+import 'package:provider/provider.dart';
 
 class LoginPage extends StatefulWidget {
+  const LoginPage({required this.role, super.key});
   final UserRole role;
-
-  const LoginPage({
-    super.key,
-    required this.role,
-  });
 
   @override
   State<LoginPage> createState() => _LoginPageState();
 }
 
 class _LoginPageState extends State<LoginPage> {
-  final TextEditingController emailCtrl = TextEditingController();
-  final TextEditingController passwordCtrl = TextEditingController();
-
-  final UserProfileService _profileService = UserProfileService();
+  final emailCtrl = TextEditingController();
+  final passwordCtrl = TextEditingController();
 
   bool obscure = true;
   bool loading = false;
@@ -40,75 +35,46 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
-  // ================= VALIDATION =================
   bool _validate(BuildContext context) {
     final isArabic = context.read<LanguageProvider>().isArabic;
 
-    if (emailCtrl.text.trim().isEmpty) {
-      _showError(
-        isArabic ? 'البريد الإلكتروني مطلوب' : 'Email is required',
-      );
+    if (emailCtrl.text.isEmpty) {
+      _showError(isArabic ? 'البريد مطلوب' : 'Email required');
       return false;
     }
 
     if (!emailCtrl.text.contains('@')) {
-      _showError(
-        isArabic ? 'صيغة البريد غير صحيحة' : 'Invalid email format',
-      );
+      _showError(isArabic ? 'بريد غير صحيح' : 'Invalid email');
       return false;
     }
 
     if (passwordCtrl.text.length < 6) {
-      _showError(
-        isArabic
-            ? 'كلمة المرور يجب أن تكون 6 أحرف على الأقل'
-            : 'Password must be at least 6 characters',
-      );
+      _showError(isArabic ? 'كلمة المرور ضعيفة' : 'Weak password');
       return false;
     }
 
     return true;
   }
 
-  void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.redAccent,
+  void _showError(String msg) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: const Text('⚠️'),
+        content: Text(msg),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK'),
+          ),
+        ],
       ),
     );
   }
 
-  // ================= FCM SETUP =================
-  Future<void> _setupFcm() async {
-  // 🚫 أوقف التنفيذ بالكامل على Web
-  if (kIsWeb) {
-    debugPrint('⚠️ FCM disabled on Web');
-    return;
-  }
-
-  debugPrint('🔔 Setting up FCM...');
-
-  final messaging = FirebaseMessaging.instance;
-
-  await messaging.requestPermission(
-    alert: true,
-    badge: true,
-    sound: true,
-  );
-
-  final token = await messaging.getToken();
-  if (token != null) {
-    await _profileService.saveFcmToken(token);
-  }
-
-  FirebaseMessaging.instance.onTokenRefresh.listen((newToken) {
-    _profileService.saveFcmToken(newToken);
-  });
-}
-
-
-  // ================= LOGIN =================
   Future<void> _login() async {
     FocusScope.of(context).unfocus();
 
@@ -121,200 +87,224 @@ class _LoginPageState extends State<LoginPage> {
     try {
       await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: emailCtrl.text.trim(),
-        password: passwordCtrl.text,
+        password: passwordCtrl.text.trim(),
       );
 
       if (!mounted) return;
 
-      // إعداد FCM بعد تسجيل الدخول
-      await _setupFcm();
-
-      // ignore: use_build_context_synchronously
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            isArabic ? 'تم تسجيل الدخول بنجاح 🎉' : 'Login successful 🎉',
-          ),
+          content: Text(isArabic ? 'تم الدخول 🎉' : 'Login success 🎉'),
           backgroundColor: Colors.green,
-          duration: const Duration(seconds: 1),
         ),
       );
-
-      await Future.delayed(const Duration(milliseconds: 600));
-
-      if (!mounted) return;
 
       if (widget.role == UserRole.tenant) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => const TenantBottomNav(openBookingId: null, initialIndex: 0)),
+          MaterialPageRoute(
+            builder: (_) => const TenantBottomNav(),
+          ),
         );
-      } else if (widget.role == UserRole.landlord) {
+      } else {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => const LandlordBottomNav()),
+          MaterialPageRoute(
+            builder: (_) => const LandlordBottomNav(),
+          ),
         );
       }
     } on FirebaseAuthException catch (e) {
-      String msg;
+      print('🔥 ERROR: ${e.code}');
 
-      switch (e.code) {
-        case 'user-not-found':
-          msg = isArabic
-              ? 'لا يوجد حساب بهذا البريد'
-              : 'No account found for this email';
-          break;
-        case 'wrong-password':
-          msg = isArabic ? 'كلمة المرور غير صحيحة' : 'Incorrect password';
-          break;
-        case 'user-disabled':
-          msg = isArabic
-              ? 'تم تعطيل هذا الحساب'
-              : 'This account has been disabled';
-          break;
-        default:
-          msg = isArabic ? 'فشل تسجيل الدخول' : 'Login failed';
-      }
-
-      _showError(msg);
+      _showError(e.message ?? 'Login failed');
+    } catch (e) {
+      print('🔥 UNKNOWN: $e');
+      _showError(isArabic ? 'خطأ غير متوقع' : 'Unexpected error');
     } finally {
       if (mounted) setState(() => loading = false);
     }
   }
 
-  // ================= UI =================
   @override
   Widget build(BuildContext context) {
     final isArabic = context.watch<LanguageProvider>().isArabic;
 
-    return GestureDetector(
-      onTap: () => FocusScope.of(context).unfocus(),
-      child: Scaffold(
-        backgroundColor: Colors.blue,
-        appBar: AppBar(
-          title: Text(isArabic ? 'تسجيل الدخول' : 'Login'),
-        ),
-        body: Container(
-          height: double.infinity,
-          decoration: const BoxDecoration(
-            image: DecorationImage(
-              image: NetworkImage(
-                'https://res.cloudinary.com/dmklduciw/image/upload/v1769102423/login_ppicpw.png',
-              ),
+    return Scaffold(
+      body: Stack(
+        children: [
+          // 🖼️ Background Image
+          Positioned.fill(
+            child: Image.asset(
+              'lib/assets/images/login_bg2.jpeg',
               fit: BoxFit.cover,
-              colorFilter: ColorFilter.mode(
-                Colors.white70,
-                BlendMode.lighten,
+            ),
+          ),
+
+          // 🌫️ Dark Overlay
+          Positioned.fill(
+            child: Container(
+              color: Colors.black.withOpacity(0.5),
+            ),
+          ),
+
+          // ✨ Content
+          Center(
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(30),
+
+                  // 🔥 Glass Effect
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+                    child: Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(30),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.2),
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          // 👑 Title
+                          const Text(
+                            'Dari',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+
+                          const SizedBox(height: 8),
+
+                          Text(
+                            isArabic ? 'تسجيل الدخول' : 'Login',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              color: Colors.white70,
+                            ),
+                          ),
+
+                          const SizedBox(height: 30),
+
+                          // 📧 Email
+                          TextField(
+                            controller: emailCtrl,
+                            style: const TextStyle(color: Colors.white),
+                            decoration: InputDecoration(
+                              hintText:
+                                  isArabic ? 'البريد الإلكتروني' : 'Email',
+                              hintStyle: const TextStyle(color: Colors.white54),
+                              prefixIcon:
+                                  const Icon(Icons.email, color: Colors.white),
+                              filled: true,
+                              fillColor: Colors.white.withOpacity(0.1),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(25),
+                                borderSide: BorderSide.none,
+                              ),
+                            ),
+                          ),
+
+                          const SizedBox(height: 16),
+
+                          // 🔒 Password
+                          TextField(
+                            controller: passwordCtrl,
+                            obscureText: obscure,
+                            style: const TextStyle(color: Colors.white),
+                            decoration: InputDecoration(
+                              hintText: isArabic ? 'كلمة المرور' : 'Password',
+                              hintStyle: const TextStyle(color: Colors.white54),
+                              prefixIcon:
+                                  const Icon(Icons.lock, color: Colors.white),
+                              suffixIcon: IconButton(
+                                icon: Icon(
+                                  obscure
+                                      ? Icons.visibility_off
+                                      : Icons.visibility,
+                                  color: Colors.white,
+                                ),
+                                onPressed: () =>
+                                    setState(() => obscure = !obscure),
+                              ),
+                              filled: true,
+                              fillColor: Colors.white.withOpacity(0.1),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(25),
+                                borderSide: BorderSide.none,
+                              ),
+                            ),
+                          ),
+
+                          const SizedBox(height: 30),
+
+                          // 🚀 Login Button (Gradient)
+                          Container(
+                            height: 55,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(30),
+                              gradient: const LinearGradient(
+                                colors: [
+                                  Colors.purple,
+                                  Colors.blue,
+                                ],
+                              ),
+                            ),
+                            child: ElevatedButton(
+                              onPressed: loading ? null : _login,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.transparent,
+                                shadowColor: Colors.transparent,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(30),
+                                ),
+                              ),
+                              child: loading
+                                  ? const CircularProgressIndicator(
+                                      color: Colors.white,
+                                    )
+                                  : Text(
+                                      isArabic ? 'دخول' : 'Login',
+                                      style: const TextStyle(fontSize: 16),
+                                    ),
+                            ),
+                          ),
+
+                          const SizedBox(height: 20),
+
+                          // 🆕 Register
+                          TextButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      RegisterPage(role: widget.role),
+                                ),
+                              );
+                            },
+                            child: Text(
+                              isArabic ? 'إنشاء حساب' : 'Create Account',
+                              style: const TextStyle(color: Colors.white),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
               ),
             ),
           ),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                const SizedBox(height: 40),
-
-                /// HERO
-                Hero(
-                  tag: 'auth-hero',
-                  child: CircleAvatar(
-                    radius: 48,
-                    backgroundColor: Colors.transparent,
-                    child: Icon(
-                      Icons.store,
-                      size: 48,
-                      color: Theme.of(context).primaryColor,
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 24),
-
-                Text(
-                  widget.role.name.toUpperCase(),
-                  style: const TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-
-                const SizedBox(height: 32),
-
-                /// EMAIL
-                TextField(
-                  style: const TextStyle(color: Colors.black),
-                  controller: emailCtrl,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: InputDecoration(
-                    labelText:
-                        isArabic ? 'البريد الإلكتروني' : 'Email',
-                    prefixIcon: const Icon(Icons.email_outlined),
-                  ),
-                ),
-
-                const SizedBox(height: 12),
-
-                /// PASSWORD
-                TextField(
-                  style: const TextStyle(color: Colors.black),
-                  controller: passwordCtrl,
-                  obscureText: obscure,
-                  decoration: InputDecoration(
-                    labelText:
-                        isArabic ? 'كلمة المرور' : 'Password',
-                    prefixIcon: const Icon(Icons.lock_outline),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        obscure
-                            ? Icons.visibility_off
-                            : Icons.visibility,
-                      ),
-                      onPressed: () =>
-                          setState(() => obscure = !obscure),
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 24),
-
-                /// LOGIN BUTTON
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton(
-                    onPressed: loading ? null : _login,
-                    child: Text(
-                      loading
-                          ? '...'
-                          : (isArabic ? 'دخول' : 'Login'),
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 12),
-
-                /// REGISTER
-                TextButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) =>
-                            RegisterPage(role: widget.role),
-                      ),
-                    );
-                  },
-                  child: Text(
-                    isArabic
-                        ? 'إنشاء حساب جديد'
-                        : 'Create new account',
-                    style: const TextStyle(
-                        fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
+        ],
       ),
     );
   }

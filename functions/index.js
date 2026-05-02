@@ -29,7 +29,11 @@ exports.onNewBooking = onDocumentCreated(
           token: ownerToken,
           notification: {
             title: "📅 حجز جديد",
-            body: `${propertyName} • ${visitTime}`,
+            body: `🏠 ${propertyName}\n⏰ ${visitTime}`, data: {
+              type: "new_booking",
+              bookingId: event.params.bookingId,
+              screen: "booking_details"
+            }
           },
           data: {
             type: "new_booking",

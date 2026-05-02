@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
 
 class ClusterMarker extends StatelessWidget {
-  final int count;
-  final double zoom;
 
   const ClusterMarker({
-    super.key,
-    required this.count,
-    required this.zoom,
+    required this.count, required this.zoom, super.key,
   });
+  final int count;
+  final double zoom;
 
   double _scale() {
     if (zoom < 10) return 0.7;
@@ -18,8 +16,8 @@ class ClusterMarker extends StatelessWidget {
   }
 
   double _opacity() {
-    if (zoom > 15) return 0.0; // fade out
-    if (zoom < 10) return 1.0;
+    if (zoom > 15) return 0; // fade out
+    if (zoom < 10) return 1;
     return 1.0 - ((zoom - 10) / 5);
   }
 

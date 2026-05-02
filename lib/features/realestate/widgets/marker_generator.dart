@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -7,17 +9,16 @@ Future<BitmapDescriptor> markerFromWidget(Widget widget) async {
   final repaintBoundary = RenderRepaintBoundary();
 
   final renderView = RenderView(
+    view: WidgetsBinding.instance.platformDispatcher.views.first,
     child: RenderPositionedBox(
-      alignment: Alignment.center,
       child: repaintBoundary,
     ),
     configuration: const ViewConfiguration(
-  logicalConstraints: BoxConstraints.tightFor(
-    width: 200,
-    height: 100,
-  ),
-),
-    view: WidgetsBinding.instance.platformDispatcher.views.first,
+      logicalConstraints: BoxConstraints.tightFor(
+        width: 129,
+        height: 60,
+      ),
+    ),
   );
 
   final pipelineOwner = PipelineOwner();
@@ -30,7 +31,10 @@ Future<BitmapDescriptor> markerFromWidget(Widget widget) async {
     container: repaintBoundary,
     child: Directionality(
       textDirection: TextDirection.ltr,
-      child: widget,
+      child: Material(
+        color: Colors.transparent,
+        child: widget,
+      ),
     ),
   ).attachToRenderTree(buildOwner);
 
@@ -42,8 +46,9 @@ Future<BitmapDescriptor> markerFromWidget(Widget widget) async {
   pipelineOwner.flushPaint();
 
   final image = await repaintBoundary.toImage(pixelRatio: 3);
-  final bytes =
+
+  final byteData =
       await image.toByteData(format: ui.ImageByteFormat.png);
 
-  return BitmapDescriptor.fromBytes(bytes!.buffer.asUint8List());
+  return BitmapDescriptor.fromBytes(byteData!.buffer.asUint8List());
 }

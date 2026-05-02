@@ -3,16 +3,15 @@
 import 'package:flutter/material.dart';
 
 class GlassButton extends StatelessWidget {
+  const GlassButton({
+    required this.text,
+    required this.onPressed,
+    super.key,
+    this.primary = true, required int width,
+  });
   final String text;
   final VoidCallback onPressed;
   final bool primary;
-
-  const GlassButton({
-    super.key,
-    required this.text,
-    required this.onPressed,
-    this.primary = true,
-  });
 
   @override
   Widget build(BuildContext context) {

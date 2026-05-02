@@ -1,9 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:market_world/core/providers/language_provider.dart';
 import 'package:market_world/shared/widgets/app_app_bar.dart';
 import 'package:provider/provider.dart';
-
-import '../../core/providers/language_provider.dart';
 
 class AdminListingsPage extends StatelessWidget {
   const AdminListingsPage({super.key});
@@ -15,9 +14,9 @@ class AdminListingsPage extends StatelessWidget {
 
     return Scaffold(
       appBar: const AppAppBar(
-    title: 'Users',
-    isAdmin: true,
-  ),
+        title: 'Users',
+        isAdmin: true,
+      ),
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
             .collection('items')
@@ -43,15 +42,15 @@ class AdminListingsPage extends StatelessWidget {
             separatorBuilder: (_, __) => const Divider(height: 1),
             itemBuilder: (context, index) {
               final doc = docs[index];
-              final data = doc.data() as Map<String, dynamic>;
+              final data = doc.data()! as Map<String, dynamic>;
 
               final title =
                   (data['title'] as String?)?.trim().isNotEmpty == true
                       ? data['title']
                       : '—';
 
-              final type = data['type'] ?? 'unknown';
-              final status = data['status'] ?? 'active';
+              final type = (data['type'] ?? 'unknown') as String;
+              final status = (data['status'] ?? 'active') as String;
 
               return ListTile(
                 leading: Icon(

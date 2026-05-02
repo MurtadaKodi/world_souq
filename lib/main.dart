@@ -1,25 +1,29 @@
 import 'dart:io';
-import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:provider/provider.dart';
-import 'package:flutter/foundation.dart';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
-import 'firebase_options.dart';
-import 'core/theme/app_theme.dart';
-import 'core/providers/auth_provider.dart';
-import 'core/providers/language_provider.dart';
-import 'features/auth/auth_service.dart';
-import 'features/splash/splash_screen.dart';
-import 'features/entry/entry_gate_page.dart';
-import 'shared/services/notification_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:market_world/core/providers/auth_provider.dart' as app_auth;
+import 'package:market_world/core/providers/language_provider.dart';
+import 'package:market_world/core/services/local_notification_service.dart';
+import 'package:market_world/core/theme/app_theme.dart';
+import 'package:market_world/features/auth/auth_service.dart';
+import 'package:market_world/features/entry/entry_gate_page.dart';
+import 'package:market_world/features/splash/splash_screen.dart';
+import 'package:market_world/firebase_options.dart';
+import 'package:market_world/shared/services/notification_service.dart';
+import 'package:provider/provider.dart';
 
 /// 🔑 Global Navigator Key (للإشعارات)
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
-
-Future<void> main() async {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  await LocalNotificationService.init();
 
   // =========================
   // 🔥 Firebase Init
@@ -30,24 +34,25 @@ Future<void> main() async {
 // =========================
 // 🔥 Firebase Emulator Setup
 // =========================
-const bool useEmulator = kDebugMode;
+  const useEmulator = kDebugMode;
 
-if (useEmulator) {
-  String host = 'localhost';
+  if (useEmulator) {
+    // ignore: unused_local_variable
+    var host = 'localhost';
 
-  // Android Emulator fix
-  if (!kIsWeb && Platform.isAndroid) {
-    host = '10.0.2.2';
+    // Android Emulator fix
+    if (!kIsWeb && Platform.isAndroid) {
+      host = '10.0.2.2';
+    }
+
+    // FirebaseFirestore.instance.useFirestoreEmulator(host, 8080);
+    // FirebaseStorage.instance.useStorageEmulator(host, 9199);
+
+    debugPrint('🔥 Firebase Emulator Connected');
+    debugPrint(
+      useEmulator ? '🧪 Running on Emulator' : '🚀 Running on Production',
+    );
   }
-
-  FirebaseFirestore.instance.useFirestoreEmulator(host, 8080);
-  FirebaseStorage.instance.useStorageEmulator(host, 9199);
-
-  debugPrint('🔥 Firebase Emulator Connected');
-  debugPrint(useEmulator
-    ? '🧪 Running on Emulator'
-    : '🚀 Running on Production');
-}
 
   // =========================
   // 🔔 Notifications
@@ -58,12 +63,15 @@ if (useEmulator) {
   }
 
   final authService = AuthService();
+  await NotificationService.init();
 
   runApp(
     MultiProvider(
       providers: [
         Provider<AuthService>.value(value: authService),
-        ChangeNotifierProvider(create: (_) => AuthProvider(authService)),
+        ChangeNotifierProvider(
+          create: (_) => app_auth.AuthProvider(authService),
+        ),
         ChangeNotifierProvider(create: (_) => LanguageProvider()),
       ],
       child: const MyApp(),
@@ -85,11 +93,9 @@ class MyApp extends StatelessWidget {
           navigatorKey: navigatorKey,
           debugShowCheckedModeBanner: false,
 
-          title: 'Marketplace',
-
+          title: 'MarketWorld Real Estate',
           theme: AppTheme.light(),
           darkTheme: AppTheme.dark(),
-          themeMode: ThemeMode.system,
 
           // 🌍 Localization
           locale: languageProvider.locale,
@@ -120,6 +126,22 @@ class MyApp extends StatelessWidget {
           },
         );
       },
+    );
+  }
+}
+
+Future<void> saveToken() async {
+  if (kIsWeb) return;
+
+  final token = await FirebaseMessaging.instance.getToken();
+  final uid = FirebaseAuth.instance.currentUser?.uid;
+
+  if (uid != null && token != null) {
+    await FirebaseFirestore.instance.collection('users').doc(uid).set(
+      {
+        'fcmToken': token,
+      },
+      SetOptions(merge: true),
     );
   }
 }

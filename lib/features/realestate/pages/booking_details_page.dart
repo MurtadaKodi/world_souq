@@ -1,17 +1,17 @@
-import 'package:flutter/material.dart';
+// ignore_for_file: deprecated_member_use, inference_failure_on_function_invocation
 
-import '../models/booking_model.dart';
-import '../services/booking_service.dart';
+import 'package:flutter/material.dart';
+import 'package:market_world/features/realestate/models/booking_model.dart';
+import 'package:market_world/features/realestate/services/booking_service.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class BookingDetailsPage extends StatelessWidget {
+
+  const BookingDetailsPage({
+    required this.bookingId, required this.isLandlord, super.key,
+  });
   final String bookingId;
   final bool isLandlord;
-
- const BookingDetailsPage({
-    super.key,
-    required this.bookingId,
-    required this.isLandlord,
-  });
 
   @override
   Widget build(BuildContext context) {
@@ -25,11 +25,11 @@ class BookingDetailsPage extends StatelessWidget {
             body: Center(child: CircularProgressIndicator()),
           );
         }
-if (snapshot.hasError) {
-  return const Scaffold(
-    body: Center(child: Text('حدث خطأ أثناء تحميل الحجز')),
-  );
-}
+        if (snapshot.hasError) {
+          return const Scaffold(
+            body: Center(child: Text('حدث خطأ أثناء تحميل الحجز')),
+          );
+        }
 
         final booking = snapshot.data!;
 
@@ -57,15 +57,12 @@ if (snapshot.hasError) {
                   value: booking.visitTime,
                   icon: Icons.schedule,
                 ),
-                _infoTile(
-                  title: 'الحالة',
-                  value: booking.statusText,
-                  icon: Icons.info_outline,
-                  valueColor: _statusColor(booking.status),
+                Chip(
+                  label: Text(booking.statusText),
+                  backgroundColor:
+                      _statusColor(booking.status).withOpacity(0.2),
                 ),
-
                 const Divider(height: 32),
-
                 if (isLandlord) ...[
                   const Text(
                     'بيانات المستأجر',
@@ -86,11 +83,8 @@ if (snapshot.hasError) {
                     icon: Icons.phone_outlined,
                   ),
                 ],
-
                 const Spacer(),
-
-                if (isLandlord)
-                  _landlordActions(context, service, booking),
+                if (isLandlord) _landlordActions(context, service, booking),
               ],
             ),
           ),
@@ -112,11 +106,16 @@ if (snapshot.hasError) {
           FilledButton(
             onPressed: () async {
               await service.confirmBooking(booking.id);
-              if (context.mounted) Navigator.pop(context);
+              if (!context.mounted) return;
+
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('تم تأكيد الحجز')),
+              );
+
+              Navigator.pop(context);
             },
             child: const Text('تأكيد الحجز'),
           ),
-
         if (booking.isConfirmed) ...[
           const SizedBox(height: 8),
           FilledButton(
@@ -127,7 +126,6 @@ if (snapshot.hasError) {
             child: const Text('إتمام الزيارة'),
           ),
         ],
-
         const SizedBox(height: 8),
         OutlinedButton(
           onPressed: () async {
@@ -139,6 +137,28 @@ if (snapshot.hasError) {
           },
           child: const Text('إلغاء الحجز'),
         ),
+        if (isLandlord)
+          ElevatedButton.icon(
+            onPressed: () async {
+              final uri = Uri.parse('tel:${booking.clientPhone}');
+
+              if (await canLaunchUrl(uri)) {
+                await launchUrl(uri);
+              } else {
+                if (!context.mounted) return;
+
+                showDialog(
+                  context: context,
+                  builder: (_) => const AlertDialog(
+                    title: Text('تنبيه'),
+                    content: Text('لا يمكن إجراء الاتصال على هذا الجهاز'),
+                  ),
+                );
+              }
+            },
+            icon: const Icon(Icons.phone),
+            label: const Text('اتصال بالعميل'),
+          ),
       ],
     );
   }

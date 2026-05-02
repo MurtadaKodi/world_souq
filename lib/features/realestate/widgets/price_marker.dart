@@ -1,124 +1,111 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
 
 class PriceMarker extends StatelessWidget {
+
+  const PriceMarker({
+    required this.price, required this.selected, required this.isOwner, required this.isInsideRadius, required this.zoom, super.key,
+  });
   final String price;
   final bool selected;
   final bool isOwner;
   final bool isInsideRadius;
-  final String? distanceText;
   final double zoom;
 
-  const PriceMarker({
-    super.key,
-    required this.price,
-    required this.selected,
-    this.isOwner = false,
-    this.isInsideRadius = true,
-    this.distanceText,
-    required this.zoom,
-  });
-  
   @override
 Widget build(BuildContext context) {
-  double calculateZoomScale(double zoom) {
-  if (zoom < 9) return 0.7;
-  if (zoom < 11) return 0.85;
-  if (zoom < 13) return 1.0;
-  if (zoom < 15) return 1.15;
-  return 1.3;
-}
-  final bool isFar = zoom < 11;
-  final bool isMedium = zoom >= 11 && zoom < 14;
-  final zoomScale = calculateZoomScale(zoom);
-  // ignore: unused_local_variable
-  final bool isClose = zoom >= 14;
+  final scale = (zoom / 14).clamp(0.85, 1.35);
 
-  Color backgroundColor;
+  final bgColor = selected
+      ? Colors.black
+      : isOwner
+          ? Colors.deepPurple
+          : Colors.white;
 
-  if (isOwner) {
-    backgroundColor = Colors.green;
-  } else if (!isInsideRadius) {
-    backgroundColor = Colors.grey;
-  } else {
-    backgroundColor = Colors.blue;
-  }
+  final textColor = selected || !isOwner
+      ? Colors.white
+      : Colors.black;
 
-  /// 🔵 FAR ZOOM → نقطة فقط
-  if (isFar) {
-    return Transform.scale(
-      scale: zoomScale,
-      child: Container(
-        width: 10,
-        height: 10,
-        decoration: BoxDecoration(
-            color: backgroundColor,
-            shape: BoxShape.circle,
+  final borderColor = selected
+      ? Colors.black
+      : Colors.grey.shade300;
+
+  return Transform.scale(
+    scale: scale,
+    child: Stack(
+      alignment: Alignment.center,
+      children: [
+        /// 🔥 Pulse Effect (أنعم)
+        if (selected)
+          TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0.8, end: 1.2),
+            duration: const Duration(milliseconds: 800),
+            curve: Curves.easeOut,
+            builder: (context, value, child) {
+              return Transform.scale(
+                scale: value,
+                child: Container(
+                  width: 70,
+                  height: 70,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: bgColor.withOpacity(0.15),
+                  ),
+                ),
+              );
+            },
+          ),
+
+        /// 💎 Luxury Marker
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+          decoration: BoxDecoration(
+            color: bgColor,
+            borderRadius: BorderRadius.circular(30),
+            border: Border.all(
+              color: borderColor,
+              width: 1.2,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.25),
+                blurRadius: selected ? 20 : 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              /// 🏠 Icon (اختياري)
+              if (selected)
+                Padding(
+                  padding: const EdgeInsets.only(right: 6),
+                  child: Icon(
+                    Icons.home_rounded,
+                    size: 14,
+                    color: textColor,
+                  ),
+                ),
+
+              /// 💰 Price
+              Text(
+                price,
+                style: TextStyle(
+                  color: Colors.red,
+                  fontWeight: FontWeight.w600,
+                  fontSize: selected ? 15 : 13,
+                  letterSpacing: 0.2,
+                ),
+              ),
+            ],
           ),
         ),
-      
-    );
-  }
-
-  /// 🟡 MEDIUM ZOOM → سعر صغير
-  if (isMedium) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 8,
-        vertical: 4,
-      ),
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Text(
-        price,
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 10,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-    );
-  }
-
-  /// 🔴 CLOSE ZOOM → كامل
-  return Column(
-    mainAxisSize: MainAxisSize.min,
-    children: [
-      Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: 12,
-          vertical: 6,
-        ),
-        decoration: BoxDecoration(
-          color: backgroundColor,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: const [
-            BoxShadow(
-              color: Colors.black26,
-              blurRadius: 6,
-              offset: Offset(0, 2),
-            )
-          ],
-        ),
-        child: Text(
-          price,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ),
-      Container(
-        width: 6,
-        height: 6,
-        decoration: BoxDecoration(
-          color: backgroundColor,
-          shape: BoxShape.circle,
-        ),
-      ),
-    ],
+      ],
+    ),
   );
 }
 }

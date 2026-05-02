@@ -5,18 +5,15 @@ import 'package:flutter/material.dart';
 enum PropertyStatus { sale, rent, sold }
 
 class RealEstateMapMarker extends StatelessWidget {
+
+  const RealEstateMapMarker({
+    required this.price, required this.imageUrl, required this.status, super.key,
+    this.selected = false,
+  });
   final String price;
   final String imageUrl;
   final PropertyStatus status;
   final bool selected;
-
-  const RealEstateMapMarker({
-    super.key,
-    required this.price,
-    required this.imageUrl,
-    required this.status,
-    this.selected = false,
-  });
 
   @override
   Widget build(BuildContext context) {
@@ -53,7 +50,7 @@ class RealEstateMapMarker extends StatelessWidget {
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withOpacity(
-                      selected ? 0.35 : 0.18),
+                      selected ? 0.35 : 0.18,),
                   blurRadius: selected ? 22 : 12,
                   offset: const Offset(0, 6),
                 ),
@@ -106,20 +103,17 @@ class RealEstateMapMarker extends StatelessWidget {
       case PropertyStatus.sale:
         color = Colors.green;
         label = 'For Sale';
-        break;
       case PropertyStatus.rent:
         color = Colors.blue;
         label = 'For Rent';
-        break;
       case PropertyStatus.sold:
         color = Colors.red;
         label = 'Sold';
-        break;
     }
 
     return Container(
       padding: const EdgeInsets.symmetric(
-          horizontal: 8, vertical: 3),
+          horizontal: 8, vertical: 3,),
       decoration: BoxDecoration(
         color: color,
         borderRadius: BorderRadius.circular(8),
@@ -137,9 +131,9 @@ class RealEstateMapMarker extends StatelessWidget {
 }
 
 class _TrianglePainter extends CustomPainter {
-  final Color color;
 
   _TrianglePainter({required this.color});
+  final Color color;
 
   @override
   void paint(Canvas canvas, Size size) {

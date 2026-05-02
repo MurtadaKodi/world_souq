@@ -1,27 +1,28 @@
-// ignore_for_file: unused_field, prefer_single_quotes
+// ignore_for_file: duplicate_ignore, deprecated_member_use, unused_field, prefer_single_quotes
 
+import 'dart:async';
 import 'dart:ui';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+
 import 'package:flutter/material.dart';
-import 'package:market_world/features/realestate/models/property_model.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:market_world/features/realestate/models/property_model.dart';
 import 'package:market_world/features/realestate/services/favorites_service.dart';
+import 'package:market_world/features/realestate/widgets/booking_dialog.dart';
+import 'package:market_world/features/realestate/widgets/property_mini_map_ultra.dart';
+import 'package:market_world/features/realestate/widgets/simple_photo_view.dart';
 import 'package:market_world/features/storage/firebase_storage_service.dart';
 
-
 class PropertyDetailsFullScreen extends StatefulWidget {
+
+  const PropertyDetailsFullScreen({
+    required this.property, required this.onBook, required this.onClose, super.key,
+    this.onNavigate,
+  });
   final PropertyModel property;
   final VoidCallback? onNavigate;
   final VoidCallback onClose;
   final VoidCallback onBook;
-
-  const PropertyDetailsFullScreen({
-    super.key,
-    required this.property,
-    this.onNavigate,
-    required this.onBook,
-    required this.onClose,
-  });
 
   @override
   State<PropertyDetailsFullScreen> createState() =>
@@ -42,16 +43,37 @@ class _PropertyDetailsFullScreenState extends State<PropertyDetailsFullScreen> {
   int _currentIndex = 0;
   double _dragOffset = 0;
   final double _dragThreshold = 120; // مقدار السحب للإغلاق
+  TapDownDetails? _doubleTapDetails;
+  final TransformationController transformationController =
+      TransformationController();
+  bool _isZoomed = false;
+  Timer? _autoSlideTimer;
 
   @override
   void initState() {
     super.initState();
     _initLocationData();
-    _loadImages(); // 👈 جديد
+    _loadImages();
+
+    _startAutoSlide();
+  }
+
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _startAutoSlide();
+    } else if (state == AppLifecycleState.paused) {
+      _autoSlideTimer?.cancel();
+    }
+  }
+
+  @override
+  void dispose() {
+    _autoSlideTimer?.cancel();
+    transformationController.dispose(); // 🔥 مهم جداً
+    super.dispose();
   }
 
   List<String> get _images {
-    // ignore: duplicate_ignore
     // ignore: prefer_single_quotes
     debugPrint("MEDIA PATHS FROM FIRESTORE:");
     debugPrint(widget.property.mediaPaths.toString());
@@ -69,14 +91,16 @@ class _PropertyDetailsFullScreenState extends State<PropertyDetailsFullScreen> {
     return const [];
   }
 
-  // ignore: unused_element
   Future<void> _loadImages() async {
     final images = _images;
 
     final urls = await Future.wait(
-      images.map((e) => _storageService.resolveDownloadUrl(e)),
+      images.map(_storageService.resolveDownloadUrl),
     );
-
+    for (final url in urls) {
+      // ignore: use_build_context_synchronously
+      precacheImage(NetworkImage(url), context);
+    }
     setState(() {
       _resolvedImages = urls;
       _loadingImages = false;
@@ -155,19 +179,34 @@ class _PropertyDetailsFullScreenState extends State<PropertyDetailsFullScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final double screenHeight = MediaQuery.of(context).size.height;
+    final screenHeight = MediaQuery.of(context).size.height;
 
     // نسبة السحب (0 → 1)
-    final double dragPercent = (_dragOffset / screenHeight).clamp(0.0, 1.0);
+    final dragPercent = (_dragOffset / screenHeight).clamp(0.0, 1.0);
 
     // تصغير الصفحة تدريجيًا
-    final double scale = 1 - (dragPercent * 0.08);
+    final scale = 1 - (dragPercent * 0.12);
 
     // شفافية الخلفية
-    final double backgroundOpacity = 0.6 - (dragPercent * 0.5);
 
     return GestureDetector(
       onVerticalDragUpdate: (details) {
+        // ❌ تجاهل إذا zoom
+        if (_isZoomed) return;
+        // 🔥 إذا السحب أفقي → تجاهله (خلي PageView يشتغل)
+        if (details.delta.dx.abs() > details.delta.dy.abs()) {
+          return;
+        }
+
+        // 🔥 إذا المستخدم يكبر الصورة → تجاهل
+        if (_controller.hasClients &&
+            _controller.page != null &&
+            (_controller.page! - _currentIndex).abs() > 0.01) {
+          return;
+        }
+        if (_isZoomed) return;
+
+        // ✅ سحب عمودي فقط
         if (details.primaryDelta != null && details.primaryDelta! > 0) {
           setState(() {
             _dragOffset += details.primaryDelta!;
@@ -187,7 +226,7 @@ class _PropertyDetailsFullScreenState extends State<PropertyDetailsFullScreen> {
           ..translate(0.0, _dragOffset)
           ..scale(scale),
         child: Scaffold(
-          backgroundColor: Colors.black.withOpacity(backgroundOpacity),
+          backgroundColor: Colors.white,
           body: Stack(
             children: [
               /// =========================
@@ -196,7 +235,7 @@ class _PropertyDetailsFullScreenState extends State<PropertyDetailsFullScreen> {
               BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
                 child: Container(
-                  color: Colors.black.withOpacity(0.4),
+                  color: Colors.black.withOpacity(0.2),
                 ),
               ),
 
@@ -217,32 +256,40 @@ class _PropertyDetailsFullScreenState extends State<PropertyDetailsFullScreen> {
                       background: Stack(
                         fit: StackFit.expand,
                         children: [
-                          /// IMAGE SLIDER
-                          _loadingImages
-                              ? const Center(child: CircularProgressIndicator())
-                              : PageView.builder(
+                          /// ================= IMAGES =================
+                          if (_loadingImages) const Center(child: CircularProgressIndicator()) else PageView.builder(
                                   controller: _controller,
                                   itemCount: _resolvedImages.length,
-                                  physics:
-                                      const NeverScrollableScrollPhysics(), // 🔥 يسمح بالسحب مهم جداً
-                                  onPageChanged: (i) =>
-                                      setState(() => _currentIndex = i),
+                                  physics: _isZoomed
+                                      ? const NeverScrollableScrollPhysics()
+                                      : const BouncingScrollPhysics(),
+                                  onPageChanged: (i) {
+                                    setState(() {
+                                      _currentIndex = i;
+                                      _isZoomed = false;
+                                      transformationController.value =
+                                          Matrix4.identity();
+                                    });
+
+                                    _autoSlideTimer?.cancel();
+                                    _startAutoSlide();
+                                  },
                                   itemBuilder: (_, index) {
                                     final image = _resolvedImages[index];
-
                                     return Stack(
                                       fit: StackFit.expand,
                                       children: [
-                                        /// 🖼️ IMAGE
+                                        /// 🖼️ IMAGE (FIXED)
                                         Hero(
-                                          tag: image,
-                                          child: Image.network(
-                                            image,
-                                            fit: BoxFit.cover,
-                                          ),
-                                        ),
+                                            tag: image,
+                                            child: GestureDetector(
+                                              child: Image.network(
+                                                image,
+                                                fit: BoxFit.cover,
+                                              ),
+                                            ),),
 
-                                        /// 🔍 BUTTON (الحل الاحترافي)
+                                        /// 🔍 FULLSCREEN BUTTON
                                         Positioned(
                                           right: 16,
                                           bottom: 16,
@@ -252,25 +299,25 @@ class _PropertyDetailsFullScreenState extends State<PropertyDetailsFullScreen> {
                                                 context,
                                                 MaterialPageRoute(
                                                   builder: (_) =>
-                                                      FullScreenGallery(
+                                                      SimplePhotoView(
                                                     images: _resolvedImages,
                                                     initialIndex: index,
                                                   ),
                                                 ),
                                               );
                                             },
-                                            child: Container(
-                                              padding: const EdgeInsets.all(10),
-                                              decoration: BoxDecoration(
-                                                color: Colors.black
-                                                    .withOpacity(0.6),
-                                                shape: BoxShape.circle,
-                                              ),
-                                              child: const Icon(
-                                                Icons.fullscreen,
-                                                color: Colors.white,
-                                              ),
-                                            ),
+                                            // child: Container(
+                                            //   padding: const EdgeInsets.all(10),
+                                            //   decoration: BoxDecoration(
+                                            //     color: Colors.black
+                                            //         .withOpacity(0.6),
+                                            //     shape: BoxShape.circle,
+                                            //   ),
+                                            //   child: const Icon(
+                                            //     Icons.fullscreen,
+                                            //     color: Colors.white,
+                                            //   ),
+                                            // ),
                                           ),
                                         ),
                                       ],
@@ -278,7 +325,34 @@ class _PropertyDetailsFullScreenState extends State<PropertyDetailsFullScreen> {
                                   },
                                 ),
 
-                          /// GRADIENT
+                          /// ================= DOTS =================
+                          if (_resolvedImages.length > 1)
+                            Positioned(
+                              bottom: 12,
+                              left: 0,
+                              right: 0,
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: List.generate(
+                                  _resolvedImages.length,
+                                  (i) => AnimatedContainer(
+                                    duration: const Duration(milliseconds: 300),
+                                    margin: const EdgeInsets.symmetric(
+                                        horizontal: 4,),
+                                    width: _currentIndex == i ? 20 : 8,
+                                    height: 8,
+                                    decoration: BoxDecoration(
+                                      color: _currentIndex == i
+                                          ? Colors.white
+                                          : Colors.white54,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+
+                          /// ================= GRADIENT =================
                           Container(
                             decoration: const BoxDecoration(
                               gradient: LinearGradient(
@@ -291,99 +365,6 @@ class _PropertyDetailsFullScreenState extends State<PropertyDetailsFullScreen> {
                               ),
                             ),
                           ),
-
-                          /// TITLE (يظهر مع collapse)
-                          Positioned(
-                            bottom: 20,
-                            left: 20,
-                            right: 20,
-                            child: Text(
-                              widget.property.title,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 22,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-
-                          /// FAVORITE + SHARE
-                          Positioned(
-                            top: 60,
-                            left: 20,
-                            right: 20,
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                /// BACK
-                                GestureDetector(
-                                  onTap: () => Navigator.pop(context),
-                                  child: const CircleAvatar(
-                                    backgroundColor: Colors.black54,
-                                    child: Icon(Icons.arrow_back,
-                                        color: Colors.white),
-                                  ),
-                                ),
-
-                                Row(
-                                  children: [
-                                    StreamBuilder<bool>(
-                                      stream: _favoritesService
-                                          .isFavorite(widget.property.id),
-                                      builder: (context, snapshot) {
-                                        final isFav = snapshot.data ?? false;
-
-                                        return GestureDetector(
-                                          onTap: () async {
-                                            if (isFav) {
-                                              await _favoritesService
-                                                  .removeFromFavorites(
-                                                      widget.property.id);
-                                            } else {
-                                              await _favoritesService
-                                                  .addToFavorites(
-                                                      widget.property.id);
-                                            }
-                                          },
-                                          child: Container(
-                                            padding: const EdgeInsets.all(10),
-                                            decoration: BoxDecoration(
-                                              color:
-                                                  Colors.white.withOpacity(0.9),
-                                              shape: BoxShape.circle,
-                                            ),
-                                            child: Icon(
-                                              isFav
-                                                  ? Icons.favorite
-                                                  : Icons.favorite_border,
-                                              color: isFav
-                                                  ? Colors.red
-                                                  : Colors.black,
-                                            ),
-                                          ),
-                                        );
-                                      },
-                                    ),
-
-                                    /// FAVORITE (نفس كودك)
-                                    // انسخ نفس StreamBuilder هنا
-
-                                    const SizedBox(width: 10),
-
-                                    /// SHARE
-                                    Container(
-                                      padding: const EdgeInsets.all(10),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white.withOpacity(0.9),
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: const Icon(Icons.share),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
                         ],
                       ),
                     ),
@@ -394,7 +375,7 @@ class _PropertyDetailsFullScreenState extends State<PropertyDetailsFullScreen> {
                     child: Container(
                       padding: const EdgeInsets.all(20),
                       decoration: const BoxDecoration(
-                        color: Colors.white,
+                        color: Colors.transparent,
                         borderRadius:
                             BorderRadius.vertical(top: Radius.circular(28)),
                       ),
@@ -402,22 +383,26 @@ class _PropertyDetailsFullScreenState extends State<PropertyDetailsFullScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           /// PRICE
-                          Text(
-                            '${widget.property.price.toStringAsFixed(0)} ${widget.property.currency}',
-                            style: const TextStyle(
-                                fontSize: 20, color: Colors.redAccent),
-                          ),
+                          // Center(
+                          //   child: Text(
+                          //     '${widget.property.price.toStringAsFixed(0)} ${widget.property.currency}',
+                          //     style: const TextStyle(
+                          //         fontSize: 20, color: Colors.black),
+                          //   ),
+                          // ),
 
-                          const SizedBox(height: 10),
+                          // const SizedBox(height: 10),
 
                           /// DISTANCE
-                          if (_distanceText != null)
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [if (_distanceText != null)
                             Text(
-                              'يبعد $_distanceText عنك',
+                             Localizations.localeOf(context).languageCode == 'ar' ? 'يبعد $_distanceText عنك' : '$_distanceText away from you',
                               style: const TextStyle(color: Colors.blue),
                             ),
 
-                          const SizedBox(height: 10),
+                          const SizedBox(width: 120),
 
                           /// LOCATION
                           Text(
@@ -426,27 +411,51 @@ class _PropertyDetailsFullScreenState extends State<PropertyDetailsFullScreen> {
                           ),
 
                           const SizedBox(height: 20),
+],
+                          ),
 
+                          
                           /// DESCRIPTION
-                          const Text(
-                            'الوصف',
-                            style: TextStyle(fontWeight: FontWeight.bold),
+                          Center(
+                            child: Text(
+                              Localizations.localeOf(context).languageCode == 'ar' ? 'الوصف' : 'Description',
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14,color: Colors.grey),
+                            ),
                           ),
                           const SizedBox(height: 6),
-                          Text(widget.property.description),
+                          Center(child: Text(widget.property.description, style: const TextStyle(fontSize: 14, color: Colors.black87),)),
 
                           const SizedBox(height: 30),
 
-                          /// MINI MAP (نضيفه في الخطوة القادمة 👇)
+                          /// MINI MAP (👇)
+                          if (widget.property.lat != null &&
+                              widget.property.lng != null)
+                            PropertyMiniMapUltra(
+                              lat: widget.property.lat!,
+                              lng: widget.property.lng!,
+                              title:
+                                  // ignore: dead_null_aware_expression
+                                  widget.property.title ?? 'Property Location',
+                            ),
                         ],
                       ),
                     ),
                   ),
                 ],
-              )),
+              ),),
 
               /// CLOSE BUTTON
-
+              Positioned(
+                top: 20,
+                right: 20,
+                child: GestureDetector(
+                  onTap: widget.onClose,
+                  child: const CircleAvatar(
+                    backgroundColor: Colors.black54,
+                    child: Icon(Icons.close, color: Colors.white),
+                  ),
+                ),
+              ),
               Positioned(
                 bottom: 0,
                 left: 0,
@@ -458,7 +467,7 @@ class _PropertyDetailsFullScreenState extends State<PropertyDetailsFullScreen> {
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withOpacity(0.08),
-                        blurRadius: 10,
+                        blurRadius: 1,
                         offset: const Offset(0, -3),
                       ),
                     ],
@@ -479,9 +488,9 @@ class _PropertyDetailsFullScreenState extends State<PropertyDetailsFullScreen> {
                               ),
                             ),
                             const SizedBox(height: 2),
-                            const Text(
-                              'السعر الإجمالي',
-                              style: TextStyle(
+                            Text(
+                              Localizations.localeOf(context).languageCode == 'ar' ? 'السعر الإجمالي' : 'Total Price',
+                              style: const TextStyle(
                                 fontSize: 12,
                                 color: Colors.grey,
                               ),
@@ -496,16 +505,28 @@ class _PropertyDetailsFullScreenState extends State<PropertyDetailsFullScreen> {
                       Expanded(
                         flex: 3,
                         child: ElevatedButton(
-                          onPressed: widget.onBook,
+                          onPressed: () {
+                            showModalBottomSheet(
+                              context: context,
+                              isScrollControlled: true,
+                              backgroundColor: Colors.transparent,
+                              builder: (_) => BookingDialog(
+                                property: widget.property,
+                                propertyId: widget.property.id,
+                                propertyName: widget.property.title,
+                                ownerId: widget.property.ownerId,
+                              ),
+                            );
+                          },
                           style: ElevatedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
                           ),
-                          child: const Text(
-                            'حجز موعد',
-                            style: TextStyle(
+                          child: Text(
+                            Localizations.localeOf(context).languageCode == 'ar' ? 'حجز موعد' : 'Book Appointment',
+                            style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
                             ),
@@ -515,23 +536,40 @@ class _PropertyDetailsFullScreenState extends State<PropertyDetailsFullScreen> {
                     ],
                   ),
                 ),
-              )
+              ),
             ],
           ),
         ),
       ),
     );
   }
+
+  void _startAutoSlide() {
+    _autoSlideTimer = Timer.periodic(
+      const Duration(seconds: 4),
+      (_) {
+        if (_isZoomed || _resolvedImages.isEmpty) return;
+
+        final next = (_currentIndex + 1) % _resolvedImages.length;
+
+        _controller.animateToPage(
+          next,
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.easeInOut,
+        );
+      },
+    );
+  }
 }
 
 class _FavoriteButton extends StatelessWidget {
-  final String propertyId;
-  final FavoritesService service;
 
   const _FavoriteButton({
     required this.propertyId,
     required this.service,
   });
+  final String propertyId;
+  final FavoritesService service;
 
   @override
   Widget build(BuildContext context) {
@@ -554,10 +592,10 @@ class _FavoriteButton extends StatelessWidget {
 }
 
 class _CircleButton extends StatelessWidget {
-  final IconData icon;
-  final VoidCallback? onTap;
 
   const _CircleButton({required this.icon, this.onTap});
+  final IconData icon;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -573,13 +611,6 @@ class _CircleButton extends StatelessWidget {
 
 // ignore: unused_element
 class _HeaderSliver extends StatelessWidget {
-  final List<String> images;
-  final bool loading;
-  final PageController controller;
-  final int currentIndex;
-  final Function(int) onPageChanged;
-  final PropertyModel property;
-  final FavoritesService favoritesService;
 
   const _HeaderSliver({
     required this.images,
@@ -589,7 +620,18 @@ class _HeaderSliver extends StatelessWidget {
     required this.onPageChanged,
     required this.property,
     required this.favoritesService,
+    required this.transformationController,
+    required this.isZoomed,
   });
+  final List<String> images;
+  final bool loading;
+  final PageController controller;
+  final int currentIndex;
+  final Function(int) onPageChanged;
+  final PropertyModel property;
+  final FavoritesService favoritesService;
+  final TransformationController transformationController;
+  final bool isZoomed;
 
   @override
   Widget build(BuildContext context) {
@@ -601,31 +643,33 @@ class _HeaderSliver extends StatelessWidget {
         background: Stack(
           fit: StackFit.expand,
           children: [
-            /// IMAGES
-            loading
-                ? const Center(child: CircularProgressIndicator())
-                : PageView.builder(
-                    physics: const BouncingScrollPhysics(),
+            /// IMAGE SLIDER
+            if (loading) const Center(child: CircularProgressIndicator()) else PageView.builder(
+                    allowImplicitScrolling: true,
+                    physics: isZoomed
+                        ? const NeverScrollableScrollPhysics()
+                        : const BouncingScrollPhysics(),
                     controller: controller,
                     itemCount: images.length,
                     onPageChanged: onPageChanged,
                     itemBuilder: (_, index) {
                       final image = images[index];
 
-                      return GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => FullScreenGallery(
-                                images: images,
-                                initialIndex: index,
+                      return Hero(
+                        tag: image,
+                        child: GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => SimplePhotoView(
+                                  images:
+                                      images, // نفس الصور المستخدمة في slider
+                                  initialIndex: index,
+                                ),
                               ),
-                            ),
-                          );
-                        },
-                        child: Hero(
-                          tag: image,
+                            );
+                          },
                           child: Image.network(
                             image,
                             fit: BoxFit.cover,
@@ -641,12 +685,29 @@ class _HeaderSliver extends StatelessWidget {
                 gradient: LinearGradient(
                   begin: Alignment.bottomCenter,
                   end: Alignment.topCenter,
-                  colors: [Colors.black54, Colors.transparent],
+                  colors: [
+                    Colors.black54,
+                    Colors.transparent,
+                  ],
                 ),
               ),
             ),
 
-            /// TOP ACTIONS
+            /// TITLE
+            Positioned(
+              bottom: 20,
+              left: 20,
+              right: 20,
+              child: Text(
+                property.title,
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,),
+              ),
+            ),
+
+            /// FAVORITE + SHARE
             Positioned(
               top: 60,
               left: 20,
@@ -654,111 +715,39 @@ class _HeaderSliver extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  _CircleButton(
-                    icon: Icons.arrow_back,
+                  /// BACK
+                  GestureDetector(
                     onTap: () => Navigator.pop(context),
+                    child: const CircleAvatar(
+                      backgroundColor: Colors.black54,
+                      child: Icon(Icons.arrow_back, color: Colors.white),
+                    ),
                   ),
+
                   Row(
                     children: [
                       _FavoriteButton(
                         propertyId: property.id,
                         service: favoritesService,
                       ),
+
                       const SizedBox(width: 10),
-                      const _CircleButton(icon: Icons.share),
+
+                      /// SHARE
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.9),
+                            shape: BoxShape.circle,),
+                        child: const Icon(Icons.share),
+                      ),
                     ],
                   ),
                 ],
               ),
             ),
-
-            /// DOTS
-            Positioned(
-              bottom: 10,
-              child: Row(
-                children: List.generate(
-                  images.length,
-                  (i) => AnimatedContainer(
-                    duration: const Duration(milliseconds: 300),
-                    margin: const EdgeInsets.symmetric(horizontal: 4),
-                    width: currentIndex == i ? 24 : 8,
-                    height: 8,
-                    decoration: BoxDecoration(
-                      color: currentIndex == i ? Colors.white : Colors.white54,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                ),
-              ),
-            ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class FullScreenGallery extends StatefulWidget {
-  final List<String> images;
-  final int initialIndex;
-
-  const FullScreenGallery({
-    super.key,
-    required this.images,
-    required this.initialIndex,
-  });
-
-  @override
-  State<FullScreenGallery> createState() => _FullScreenGalleryState();
-}
-
-class _FullScreenGalleryState extends State<FullScreenGallery> {
-  late PageController _controller;
-
-  @override
-  void initState() {
-    _controller = PageController(initialPage: widget.initialIndex);
-    super.initState();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: Stack(
-        children: [
-          PageView.builder(
-            controller: _controller,
-            itemCount: widget.images.length,
-            itemBuilder: (_, index) {
-              final image = widget.images[index];
-
-              return InteractiveViewer(
-                minScale: 1,
-                maxScale: 4,
-                child: Center(
-                  child: Hero(
-                    tag: image,
-                    child: Image.network(image),
-                  ),
-                ),
-              );
-            },
-          ),
-
-          /// CLOSE
-          Positioned(
-            top: 40,
-            right: 20,
-            child: GestureDetector(
-              onTap: () => Navigator.pop(context),
-              child: const CircleAvatar(
-                backgroundColor: Colors.black54,
-                child: Icon(Icons.close, color: Colors.white),
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }

@@ -31,17 +31,17 @@ class NotificationService {
 
     } catch (e) {
       debugPrint(
-          '⚠️ Messaging initialization failed: $e');
+          '⚠️ Messaging initialization failed: $e',);
     }
   }
 
   // ================= HANDLER =================
-
+@pragma('vm:entry-point')
   static void _handleMessage(RemoteMessage message) {
     final data = message.data;
 
-    final String? type = data['type'];
-    final String? bookingId = data['bookingId'];
+    final type = data['type'] as String?;
+    final bookingId = data['bookingId'] as String?;
 
     if (type == null || bookingId == null) {
       debugPrint('🔴 Notification missing data');
@@ -55,16 +55,14 @@ class NotificationService {
       case 'new_booking':
         role = UserRole.landlord;
         tabIndex = 2;
-        break;
 
       case 'booking_confirmed':
         role = UserRole.tenant;
         tabIndex = 1;
-        break;
 
       default:
         debugPrint(
-            '⚠️ Unknown notification type: $type');
+            '⚠️ Unknown notification type: $type',);
         return;
     }
 
@@ -102,6 +100,6 @@ class NotificationService {
         .doc(uid)
         .set({
       'fcmToken': token,
-    }, SetOptions(merge: true));
+    }, SetOptions(merge: true),);
   }
 }

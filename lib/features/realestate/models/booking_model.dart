@@ -1,19 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class BookingModel {
-  final String id;
-  final String propertyId;
-  final String propertyName;
-  final String ownerId;
-
-  final String clientName;
-  final String clientPhone;
-
-  final DateTime visitDate;
-  final String visitTime;
-
-  final String status;
-  final DateTime createdAt;
 
   BookingModel({
     required this.id,
@@ -28,6 +15,36 @@ class BookingModel {
     DateTime? createdAt,
   }) : createdAt = createdAt ?? DateTime.now();
 
+  factory BookingModel.fromDoc(DocumentSnapshot doc) {
+    final data = doc.data()! as Map<String, dynamic>;
+    return BookingModel(
+      id: doc.id,
+      propertyId: data['propertyId']?.toString() ?? '',
+      propertyName: data['propertyName']?.toString() ?? '',
+      ownerId: data['ownerId']?.toString() ?? '',
+      clientName: data['clientName']?.toString() ?? '',
+      clientPhone: data['clientPhone']?.toString() ?? '',
+      visitDate: (data['visitDate'] as Timestamp).toDate(),
+      visitTime: data['visitTime']?.toString() ?? '',
+      status: data['status']?.toString() ?? 'pending',
+      createdAt:
+          (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+    );
+  }
+  final String id;
+  final String propertyId;
+  final String propertyName;
+  final String ownerId;
+
+  final String clientName;
+  final String clientPhone;
+
+  final DateTime visitDate;
+  final String visitTime;
+
+  final String status;
+  final DateTime createdAt;
+
   Map<String, dynamic> toJson() => {
         'propertyId': propertyId,
         'propertyName': propertyName,
@@ -40,23 +57,7 @@ class BookingModel {
         'createdAt': FieldValue.serverTimestamp(),
       };
 
-  factory BookingModel.fromDoc(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
-    return BookingModel(
-      id: doc.id,
-      propertyId: data['propertyId'],
-      propertyName: data['propertyName'],
-      ownerId: data['ownerId'],
-      clientName: data['clientName'],
-      clientPhone: data['clientPhone'],
-      visitDate: (data['visitDate'] as Timestamp).toDate(),
-      visitTime: data['visitTime'],
-      status: data['status'] ?? 'pending',
-      createdAt:
-          (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
-    );
-  }
-    // ================= UI GETTERS =================
+  // ================= UI GETTERS =================
 
   String get statusText {
     switch (status) {
@@ -76,5 +77,4 @@ class BookingModel {
   bool get isPending => status == 'pending';
   bool get isConfirmed => status == 'confirmed';
   bool get isCompleted => status == 'completed';
-
 }
