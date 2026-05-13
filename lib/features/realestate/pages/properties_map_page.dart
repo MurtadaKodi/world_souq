@@ -8,17 +8,22 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:market_world/core/constants/enums.dart';
 import 'package:market_world/features/realestate/models/property_model.dart';
 import 'package:market_world/features/realestate/pages/property_details_page.dart';
+import 'package:market_world/features/realestate/services/favorites_service.dart';
 import 'package:market_world/features/realestate/services/property_service.dart';
 import 'package:market_world/features/realestate/widgets/luxury_marker.dart';
 import 'package:market_world/features/realestate/widgets/marker_generator.dart';
+import 'package:market_world/features/realestate/widgets/ultra_property_card.dart';
+import 'package:market_world/features/storage/firebase_storage_service.dart';
 import 'package:market_world/map/cluster_marker.dart';
 import 'package:market_world/map/smart_cluster_engine.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class PropertiesMapPage extends StatefulWidget {
-
   const PropertiesMapPage({
     super.key,
-    this.focusPropertyId, required int initialIndex, required UserRole role,
+    this.focusPropertyId,
+    required int initialIndex,
+    required UserRole role,
   });
   final String? focusPropertyId;
 
@@ -26,9 +31,14 @@ class PropertiesMapPage extends StatefulWidget {
   State<PropertiesMapPage> createState() => _PropertiesMapPageState();
 }
 
-class _PropertiesMapPageState extends State<PropertiesMapPage> {
+class _PropertiesMapPageState extends State<PropertiesMapPage> with TickerProviderStateMixin {
+  late final AnimationController _floatingController;
+  late final AnimationController _bounceController;
+  final Set<String> _favoriteIds = {};
+  double _bounceValue = 1;
+  double _floatingValue = 0;
   final PropertyService _service = PropertyService();
-
+  PropertyModel? _selectedProperty;
   GoogleMapController? _controller;
   LatLngBounds? _visibleRegion;
   List<PropertyModel> _properties = [];
@@ -45,6 +55,13 @@ class _PropertiesMapPageState extends State<PropertiesMapPage> {
           p.lng! >= _visibleRegion!.southwest.longitude &&
           p.lng! <= _visibleRegion!.northeast.longitude;
     }).toList();
+  }
+
+  @override
+  void dispose() {
+    _floatingController.dispose();
+    _bounceController.dispose();
+    super.dispose();
   }
 
   double _getDynamicRadius() {
@@ -67,12 +84,62 @@ class _PropertiesMapPageState extends State<PropertiesMapPage> {
 
   Timer? _debounce;
 
+  final FavoritesService _favoritesService = FavoritesService();
   // =========================
   // INIT
   // =========================
   @override
   void initState() {
+    _favoritesService.getFavorites().listen((ids) {
+      setState(() {
+        _favoriteIds
+          ..clear()
+          ..addAll(ids);
+      });
+    });
     super.initState();
+
+    // =========================
+    // FLOATING
+    // =========================
+
+    _floatingController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2200),
+    )
+      ..repeat(reverse: true)
+      ..addListener(() async {
+        _floatingValue = Tween(begin: -4.0, end: 4.0).transform(_floatingController.value);
+
+        await _rebuild();
+      });
+
+    // =========================
+    // BOUNCE
+    // =========================
+
+    _bounceController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 700),
+    )..addListener(() async {
+        _bounceValue = TweenSequence<double>([
+          TweenSequenceItem(
+            tween: Tween(begin: 1.0, end: 1.28).chain(CurveTween(curve: Curves.easeOut)),
+            weight: 40,
+          ),
+          TweenSequenceItem(
+            tween: Tween(begin: 1.28, end: .92).chain(CurveTween(curve: Curves.easeInOut)),
+            weight: 30,
+          ),
+          TweenSequenceItem(
+            tween: Tween(begin: .92, end: 1.0).chain(CurveTween(curve: Curves.elasticOut)),
+            weight: 30,
+          ),
+        ]).transform(_bounceController.value);
+
+        await _rebuild();
+      });
+
     _listenProperties();
   }
 
@@ -87,8 +154,7 @@ class _PropertiesMapPageState extends State<PropertiesMapPage> {
   Future<void> _handleInitialFocus() async {
     if (widget.focusPropertyId == null) return;
 
-    final list =
-        _properties.where((p) => p.id == widget.focusPropertyId).toList();
+    final list = _properties.where((p) => p.id == widget.focusPropertyId).toList();
 
     if (list.isEmpty) return;
 
@@ -166,83 +232,74 @@ class _PropertiesMapPageState extends State<PropertiesMapPage> {
                 : Colors.blue;
 
         if (cluster.properties.length > 1) {
-  final icon = await markerFromWidget(
-    ClusterMarker(
-      count: cluster.properties.length,
-      zoom: _currentZoom,
-    ),
-  );
+          final icon = await markerFromWidget(
+            ClusterMarker(count: cluster.properties.length, zoom: _currentZoom),
+          );
 
-        markers.add(
-          Marker(
-            markerId: MarkerId('cluster_${cluster.position}'),
-            position: cluster.position,
-            icon: icon,
-            onTap: () {
-              _controller?.animateCamera(
-                CameraUpdate.newCameraPosition(
-                  CameraPosition(
-                    target: cluster.position,
-                    zoom: _currentZoom + 2,
+          markers.add(
+            Marker(
+              markerId: MarkerId('cluster_${cluster.position}'),
+              position: cluster.position,
+              icon: icon,
+              onTap: () {
+                _controller?.animateCamera(
+                  CameraUpdate.newCameraPosition(
+                    CameraPosition(target: cluster.position, zoom: _currentZoom + 2),
                   ),
-                ),
-              );
-            },
-          ),
-        );
+                );
+              },
+            ),
+          );
 
-        continue;
-      }}
+          continue;
+        }
+      }
 
       print('Properties count: ${cluster.properties.length}');
-// =========================
-// 💰 SINGLE PROPERTY
-// =========================
+      // =========================
+      // 💰 SINGLE PROPERTY
+      // =========================
       final property = cluster.properties.first;
 
       final zoomBucket_ = (_currentZoom / 2).floor();
 
-      final cacheKey =
-          '${property.id}_$zoomBucket_${property.id == _selectedId}';
+      final cacheKey = '${property.id}_$zoomBucket_${property.id == _selectedId}';
 
       BitmapDescriptor icon;
 
       if (_markerCache.containsKey(cacheKey)) {
         icon = _markerCache[cacheKey]!;
       } else {
+        final isArabic = Localizations.localeOf(context).languageCode == 'ar';
         icon = await createLuxuryMarker(
-          price: '${property.price.toInt() ?? 0} QAR',
+          price: isArabic ? '${property.price.toInt()} ر.ق' : '${property.price.toInt()} QAR',
           zoom: _currentZoom,
           selected: property.id == _selectedId,
+          floatingOffset: property.id == _selectedId ? _floatingValue * 1.8 : _floatingValue,
+          bounceScale: property.id == _selectedId ? _bounceValue : 1,
         );
       }
 
       markers.add(
         Marker(
-            markerId: MarkerId(property.id),
-            position: cluster.position,
-            icon: icon,
-            onTap: () async {
-              // ❌ منع الفتح التلقائي أثناء الـ highlight
-              if (_isHighlighting) return;
+          markerId: MarkerId(property.id),
+          position: cluster.position,
+          icon: icon,
+          onTap: () async {
+            if (_isHighlighting) return;
 
-              await _highlightProperty(property);
+            setState(() {
+              _selectedId = property.id;
+              _selectedProperty = property;
+            });
+            _bounceController.forward(from: 0);
+            await _controller?.animateCamera(
+              CameraUpdate.newLatLngZoom(LatLng(property.lat!, property.lng!), 15),
+            );
 
-              if (!mounted) return;
-              showModalBottomSheet(
-                context: context,
-                isScrollControlled: true,
-                builder: (_) {
-                  return PropertyDetailsFullScreen(
-                    property: property,
-                    onClose: () => Navigator.pop(context),
-                    onBook: () {},
-                  );
-                },
-              );
-
-              setState(() => _isSheetOpen = false);
-            },),
+            await _rebuild();
+          },
+        ),
       );
     }
 
@@ -286,10 +343,7 @@ class _PropertiesMapPageState extends State<PropertiesMapPage> {
 
     await _controller?.animateCamera(
       CameraUpdate.newCameraPosition(
-        CameraPosition(
-          target: LatLng(property.lat!, property.lng!),
-          zoom: 16,
-        ),
+        CameraPosition(target: LatLng(property.lat!, property.lng!), zoom: 16),
       ),
     );
 
@@ -322,9 +376,7 @@ class _PropertiesMapPageState extends State<PropertiesMapPage> {
       );
     });
 
-    _controller?.animateCamera(
-      CameraUpdate.newLatLngZoom(latLng, 18),
-    );
+    _controller?.animateCamera(CameraUpdate.newLatLngZoom(latLng, 18));
 
     await _rebuild();
   }
@@ -372,9 +424,91 @@ class _PropertiesMapPageState extends State<PropertiesMapPage> {
               },
             ),
           ),
+          // DARK OVERLAY
+          AnimatedOpacity(
+            opacity: _selectedProperty != null ? 1 : 0,
+            duration: const Duration(milliseconds: 350),
+            child: Container(
+              color: Colors.black.withOpacity(.38),
+            ),
+          ),
+          // INFO CARD
+          if (_selectedProperty != null)
+            Positioned(
+              left: 16,
+              right: 16,
+              bottom: 90,
+              child: UltraPropertyCard(
+                key: ValueKey(
+  '${_selectedProperty!.id}_${_favoriteIds.contains(_selectedProperty!.id)}',
+),
+                onCall: () async {
+                  final phone =
+                      _selectedProperty?.ownerPhone.replaceAll(RegExp(r'[^0-9]'), '') ?? '';
+
+                  if (phone.isEmpty) return;
+
+                  await launchUrl(
+                    Uri.parse('tel:$phone'),
+                  );
+                },
+                onWhatsApp: () async {
+                  var phone = _selectedProperty?.ownerPhone.replaceAll(RegExp(r'[^0-9]'), '') ?? '';
+
+                  if (phone.isEmpty) return;
+
+                  if (phone.length == 8) {
+                    phone = '974$phone';
+                  }
+
+                  final msg = Uri.encodeComponent(
+                    'مرحباً، أنا مهتم بالعقار: ${_selectedProperty?.title}',
+                  );
+
+                  await launchUrl(
+                    Uri.parse(
+                      'https://wa.me/$phone?text=$msg',
+                    ),
+                    mode: LaunchMode.externalApplication,
+                  );
+                },
+                onFavorite: () async {
+                  final id = _selectedProperty!.id;
+
+                  if (_favoriteIds.contains(id)) {
+                    await _favoritesService.removeFromFavorites(id);
+                  } else {
+                    await _favoritesService.addToFavorites(id);
+                  }
+                },
+              
+                property: _selectedProperty!,
+                onClose: () {
+                  setState(() {
+                    _selectedProperty = null;
+                    _selectedId = null;
+                  });
+                  _rebuild();
+                },
+                onDetails: () {
+                  showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    builder: (_) => PropertyDetailsFullScreen(
+                      property: _selectedProperty!,
+                      onClose: () => Navigator.pop(context),
+                      onBook: () {},
+                    ),
+                  );
+                },
+                isFavorite: _favoriteIds.contains(
+                  _selectedProperty!.id,
+                ),
+              ),
+            ),
           Positioned(
-            bottom: 190,
-            right: 10,
+            bottom: 25,
+            left: 10,
             child: Container(
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -422,5 +556,173 @@ class _PropertiesMapPageState extends State<PropertiesMapPage> {
     }
 
     return nearest;
+  }
+}
+
+// ignore: unused_element
+class _MarkerInfoCard extends StatelessWidget {
+  const _MarkerInfoCard({
+    required this.property,
+    required this.onClose,
+    required this.onDetails,
+  });
+
+  final PropertyModel property;
+  final VoidCallback onClose;
+  final VoidCallback onDetails;
+
+  Future<void> _call() async {
+    final phone = property.ownerPhone.replaceAll(RegExp(r'[^0-9]'), '');
+    if (phone.isEmpty) return;
+    await launchUrl(Uri.parse('tel:$phone'));
+  }
+
+  Future<void> _whatsapp() async {
+    var phone = property.ownerPhone.replaceAll(RegExp(r'[^0-9]'), '');
+    if (phone.isEmpty) return;
+
+    if (phone.length == 8) {
+      phone = '974$phone';
+    }
+
+    final msg = Uri.encodeComponent('مرحباً، أنا مهتم بالعقار: ${property.title}');
+
+    await launchUrl(
+      Uri.parse('https://wa.me/$phone?text=$msg'),
+      mode: LaunchMode.externalApplication,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
+
+    return Material(
+      elevation: 12,
+      borderRadius: BorderRadius.circular(22),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(22)),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              children: [
+                FutureBuilder<String>(
+                  future: FirebaseStorageService().resolveDownloadUrl(property.mediaPaths.first),
+                  builder: (context, snap) {
+                    final url = snap.data ?? '';
+
+                    if (url.isEmpty) {
+                      return const Icon(Icons.home_work);
+                    }
+
+                    return Container(
+                      width: 50,
+                      height: 50,
+                      decoration: BoxDecoration(
+                        color: Colors.indigo.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.home_rounded, color: Colors.indigo, size: 26),
+                    );
+                  },
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        property.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                      ),
+                      Text(
+                        '${property.price.toStringAsFixed(0)} ${property.currency}',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.deepPurple,
+                        ),
+                      ),
+                      if (property.ownerName.isNotEmpty)
+                        Text(
+                          property.ownerName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(color: Colors.grey),
+                        ),
+                    ],
+                  ),
+                ),
+                IconButton(onPressed: onClose, icon: const Icon(Icons.close)),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: property.ownerPhone.isEmpty ? null : _call,
+                    icon: const Icon(Icons.call, size: 18),
+                    label: Text(isArabic ? 'اتصال' : 'Call'),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                if (property.ownerPhone.isNotEmpty) ...[
+                  SizedBox(
+                    width: 50,
+                    height: 50,
+                    child: InkWell(
+                      onTap: _whatsapp,
+                      borderRadius: BorderRadius.circular(25),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.green.withOpacity(0.08), // خلفية نظيفة
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: Colors.green.withOpacity(0.3),
+                            width: 1.5,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1), // Shadow ناعم بدل الأخضر
+                              blurRadius: 6,
+                              offset: Offset(0, 3),
+                            ),
+                          ],
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(10),
+                          child: Image.asset(
+                            'assets/icons/whatsapp.png',
+                            fit: BoxFit.contain,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                ],
+                Expanded(
+                    child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.black,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  ),
+                  onPressed: () {},
+                  child: Text(isArabic ? 'التفاصيل' : 'Details'),
+                )),
+              ],
+            )
+          ],
+        ),
+      ),
+    );
   }
 }

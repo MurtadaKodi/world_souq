@@ -65,26 +65,26 @@ class LandlordDashboardService {
   /// ❤️ عدد المفضلات على عقاراتي
   /// ===============================
   Stream<int> favoritesOnMyProperties() {
-    final uid = _uid;
-    if (uid == null) return const Stream.empty();
+  final uid = _uid;
+  if (uid == null) return const Stream.empty();
 
-    return _db
-        .collection('properties')
-        .where('ownerId', isEqualTo: uid)
-        .snapshots()
-        .asyncMap((propertiesSnapshot) async {
-      var totalFavorites = 0;
+  return _db
+      .collection('properties')
+      .where('ownerId', isEqualTo: uid)
+      .snapshots()
+      .map((snapshot) {
 
-      for (final property in propertiesSnapshot.docs) {
-        final favSnapshot = await _db
-            .collectionGroup('favorites')
-            .where('propertyId', isEqualTo: property.id)
-            .get();
+    int total = 0;
 
-        totalFavorites += favSnapshot.docs.length;
-      }
+    for (final doc in snapshot.docs) {
+      final data = doc.data();
 
-      return totalFavorites;
-    });
-  }
+      total +=
+          (data['favoritesCount'] ?? 0)
+              as int;
+    }
+
+    return total;
+  });
+}
 }

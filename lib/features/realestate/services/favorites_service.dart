@@ -19,22 +19,17 @@ class FavoritesService {
 
   // ❤️ إضافة
   Future<void> addToFavorites(String propertyId) async {
-  final uid = _uid;
-  if (uid == null) return;
+  final ref = _favoritesRef;
+  if (ref == null) return;
 
   final batch = _db.batch();
 
-  final favRef = _db
-      .collection('favorites')
-      .doc(uid)
-      .collection('items')
-      .doc(propertyId);
+  final favRef = ref.doc(propertyId);
 
   final propertyRef =
       _db.collection('properties').doc(propertyId);
 
   batch.set(favRef, {
-    'propertyId': propertyId,
     'createdAt': FieldValue.serverTimestamp(),
   });
 
@@ -47,16 +42,12 @@ class FavoritesService {
 
   // ❌ حذف
   Future<void> removeFromFavorites(String propertyId) async {
-  final uid = _uid;
-  if (uid == null) return;
+  final ref = _favoritesRef;
+  if (ref == null) return;
 
   final batch = _db.batch();
 
-  final favRef = _db
-      .collection('favorites')
-      .doc(uid)
-      .collection('items')
-      .doc(propertyId);
+  final favRef = ref.doc(propertyId);
 
   final propertyRef =
       _db.collection('properties').doc(propertyId);

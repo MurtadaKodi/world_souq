@@ -52,9 +52,14 @@ Future<void> createProperty({
     'area': area,
     'mediaPaths': imageUrls,
     'mainImage': imageUrls.isNotEmpty ? imageUrls.first : null,
+    'favoritesCount': 0,
     'createdAt': FieldValue.serverTimestamp(),
   });
 }
+/// ===============================
+  /// 🔹  إرسال تقييم للعقار Favorites
+  /// ===============================
+
   /// ===============================
   /// 🔹 جلب عقارات محددة عبر IDs
   /// ===============================

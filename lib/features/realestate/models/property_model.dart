@@ -3,21 +3,28 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class PropertyModel {
-
   PropertyModel({
+    required this.ownerName,
+    required this.ownerPhone,
     required this.id,
     required this.ownerId,
     required this.title,
     required this.description,
     required this.price,
-    required this.type, required this.purpose, required this.city, required this.area, required this.mediaPaths, required this.favoritesCount, this.currency = 'QAR',
+    required this.type,
+    required this.purpose,
+    required this.city,
+    required this.area,
+    required this.mediaPaths,
+    required this.favoritesCount,
+    this.currency = 'QAR',
     this.mainImage,
     this.createdAt,
     this.updatedAt,
     this.searchKeywords = const [],
     this.lat,
     this.lng,
-    this.address, 
+    this.address,
     this.imageUrls = const [],
   });
 
@@ -32,15 +39,16 @@ class PropertyModel {
       lat = loc.latitude;
       lng = loc.longitude;
     }
-    // ignore: unused_local_variable
     final imageUrls = (data['imageUrls'] is List)
         ? List<String>.from(
-            (data['imageUrls'] as List).map((e) => e.toString()),
+            (data['imageUrls'] as List<dynamic>).map((e) => e.toString()),
           )
-        : const [];
+        : const <String>[];
 
     return PropertyModel(
+      
       id: doc.id,
+      imageUrls: imageUrls,
       ownerId: (data['ownerId'] ?? '').toString(),
       title: (data['title'] ?? '').toString(),
       description: (data['description'] ?? '').toString(),
@@ -56,10 +64,8 @@ class PropertyModel {
             )
           : const [],
       mainImage: data['mainImage']?.toString(),
-      createdAt:
-          data['createdAt'] is Timestamp ? data['createdAt'] as Timestamp : null,
-      updatedAt:
-          data['updatedAt'] is Timestamp ? data['updatedAt'] as Timestamp : null,
+      createdAt: data['createdAt'] is Timestamp ? data['createdAt'] as Timestamp : null,
+      updatedAt: data['updatedAt'] is Timestamp ? data['updatedAt'] as Timestamp : null,
       searchKeywords: (data['searchKeywords'] is List)
           ? List<String>.from(
               (data['searchKeywords'] as List).map((e) => e.toString()),
@@ -71,8 +77,9 @@ class PropertyModel {
       favoritesCount: (data['favoritesCount'] is int)
           ? data['favoritesCount'] as int
           : int.tryParse(data['favoritesCount']?.toString() ?? '') ?? 0,
+      ownerName: data['ownerName'] ?? '',
+ownerPhone: data['ownerPhone'] ?? '',
     );
-    
   }
   final String id;
   final String ownerId;
@@ -103,6 +110,8 @@ class PropertyModel {
   final int favoritesCount;
   final List<String>? imageUrls;
 
+  final String ownerName;
+  final String ownerPhone;
   static double? _toDouble(dynamic v) {
     if (v == null) return null;
     if (v is num) return v.toDouble();
@@ -110,27 +119,28 @@ class PropertyModel {
     return null;
   }
 
-
   Map<String, dynamic> toJson() {
-  return {
-    'ownerId': ownerId,
-    'title': title,
-    'description': description,
-    'price': price,
-    'currency': currency,
-    'type': type,
-    'purpose': purpose,
-    'city': city,
-    'area': area,
-    'mediaPaths': mediaPaths,
-    'mainImage': mainImage,
-    'createdAt': createdAt ?? FieldValue.serverTimestamp(),
-    'updatedAt': FieldValue.serverTimestamp(),
-    'searchKeywords': searchKeywords,
-    'lat': lat,
-    'lng': lng,
-    'address': address,
-    'favoritesCount': favoritesCount,
-  };
-}
+    return {
+      'ownerName': ownerName,
+      'ownerPhone': ownerPhone,
+      'ownerId': ownerId,
+      'title': title,
+      'description': description,
+      'price': price,
+      'currency': currency,
+      'type': type,
+      'purpose': purpose,
+      'city': city,
+      'area': area,
+      'mediaPaths': mediaPaths,
+      'mainImage': mainImage,
+      'createdAt': createdAt ?? FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+      'searchKeywords': searchKeywords,
+      'lat': lat,
+      'lng': lng,
+      'address': address,
+      'favoritesCount': favoritesCount,
+    };
+  }
 }

@@ -76,29 +76,25 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> _login() async {
-    FocusScope.of(context).unfocus();
+  FocusScope.of(context).unfocus();
 
-    if (!_validate(context)) return;
+  if (!_validate(context)) return;
 
-    final isArabic = context.read<LanguageProvider>().isArabic;
+  final isArabic = context.read<LanguageProvider>().isArabic;
 
-    setState(() => loading = true);
+  setState(() => loading = true);
 
-    try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: emailCtrl.text.trim(),
-        password: passwordCtrl.text.trim(),
-      );
+  try {
+    await FirebaseAuth.instance.signInWithEmailAndPassword(
+      email: emailCtrl.text.trim(),
+      password: passwordCtrl.text.trim(),
+    );
 
-      if (!mounted) return;
+    if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(isArabic ? 'تم الدخول 🎉' : 'Login success 🎉'),
-          backgroundColor: Colors.green,
-        ),
-      );
+    await Future.delayed(const Duration(milliseconds: 300));
 
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       if (widget.role == UserRole.tenant) {
         Navigator.pushReplacement(
           context,
@@ -114,17 +110,15 @@ class _LoginPageState extends State<LoginPage> {
           ),
         );
       }
-    } on FirebaseAuthException catch (e) {
-      print('🔥 ERROR: ${e.code}');
-
-      _showError(e.message ?? 'Login failed');
-    } catch (e) {
-      print('🔥 UNKNOWN: $e');
-      _showError(isArabic ? 'خطأ غير متوقع' : 'Unexpected error');
-    } finally {
-      if (mounted) setState(() => loading = false);
-    }
+    });
+  } on FirebaseAuthException catch (e) {
+    _showError(e.message ?? 'Login failed');
+  } catch (e) {
+    _showError(isArabic ? 'خطأ غير متوقع' : 'Unexpected error');
+  } finally {
+    if (mounted) setState(() => loading = false);
   }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -136,7 +130,7 @@ class _LoginPageState extends State<LoginPage> {
           // 🖼️ Background Image
           Positioned.fill(
             child: Image.asset(
-              'lib/assets/images/login_bg2.jpeg',
+              'lib/assets/images/login_bg.jpg',
               fit: BoxFit.cover,
             ),
           ),
@@ -199,11 +193,9 @@ class _LoginPageState extends State<LoginPage> {
                             controller: emailCtrl,
                             style: const TextStyle(color: Colors.white),
                             decoration: InputDecoration(
-                              hintText:
-                                  isArabic ? 'البريد الإلكتروني' : 'Email',
+                              hintText: isArabic ? 'البريد الإلكتروني' : 'Email',
                               hintStyle: const TextStyle(color: Colors.white54),
-                              prefixIcon:
-                                  const Icon(Icons.email, color: Colors.white),
+                              prefixIcon: const Icon(Icons.email, color: Colors.white),
                               filled: true,
                               fillColor: Colors.white.withOpacity(0.1),
                               border: OutlineInputBorder(
@@ -223,17 +215,13 @@ class _LoginPageState extends State<LoginPage> {
                             decoration: InputDecoration(
                               hintText: isArabic ? 'كلمة المرور' : 'Password',
                               hintStyle: const TextStyle(color: Colors.white54),
-                              prefixIcon:
-                                  const Icon(Icons.lock, color: Colors.white),
+                              prefixIcon: const Icon(Icons.lock, color: Colors.white),
                               suffixIcon: IconButton(
                                 icon: Icon(
-                                  obscure
-                                      ? Icons.visibility_off
-                                      : Icons.visibility,
+                                  obscure ? Icons.visibility_off : Icons.visibility,
                                   color: Colors.white,
                                 ),
-                                onPressed: () =>
-                                    setState(() => obscure = !obscure),
+                                onPressed: () => setState(() => obscure = !obscure),
                               ),
                               filled: true,
                               fillColor: Colors.white.withOpacity(0.1),
@@ -286,8 +274,7 @@ class _LoginPageState extends State<LoginPage> {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (_) =>
-                                      RegisterPage(role: widget.role),
+                                  builder: (_) => RegisterPage(role: widget.role),
                                 ),
                               );
                             },

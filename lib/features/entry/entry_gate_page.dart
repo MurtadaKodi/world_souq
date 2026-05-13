@@ -260,7 +260,7 @@ class _EntryGatePageState extends State<EntryGatePage> with SingleTickerProvider
                             GlassButton(
                               width: (size.width * 0.8).toInt(),
                               text: context.watch<LanguageProvider>().isArabic
-                                  ? 'الدخول كمستخدم'
+                                  ? 'دخول مستخدم'
                                   : 'User Login',
                               onPressed: () {
                                 Navigator.pushReplacement(

@@ -35,15 +35,15 @@ class _TenantBottomNavState extends State<TenantBottomNav> {
     _index = widget.initialIndex;
 
     _pages = [
-      PropertiesMapPage(
-        focusPropertyId: widget.focusPropertyId,
-        role: UserRole.tenant,
-        initialIndex: 0,
-      ),
-      const PropertiesListPage(),
-      const BookingsPage(),
-      const ProfilePage(isLandlord: false),
-    ];
+  PropertiesMapPage(
+    focusPropertyId: widget.focusPropertyId,
+    role: UserRole.tenant,
+    initialIndex: 0,
+  ),
+  const PropertiesListPage(),
+  const BookingsPage(),
+  const ProfilePage(isLandlord: false),
+];
 
     // فتح تفاصيل الحجز
     if (widget.openBookingId != null) {

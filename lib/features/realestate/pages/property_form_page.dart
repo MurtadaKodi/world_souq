@@ -33,7 +33,6 @@ List<String> buildSearchKeywords(String text) {
 
 /// ================= PAGE =================
 class PropertyFormPage extends StatefulWidget {
-
   const PropertyFormPage({
     super.key,
     this.property,
@@ -54,7 +53,8 @@ class _PropertyFormPageState extends State<PropertyFormPage> {
 
   double? lat;
   double? lng;
-
+  final ownerNameCtrl = TextEditingController();
+  final ownerPhoneCtrl = TextEditingController();
   final titleCtrl = TextEditingController();
   final descCtrl = TextEditingController();
   final priceCtrl = TextEditingController();
@@ -86,6 +86,8 @@ class _PropertyFormPageState extends State<PropertyFormPage> {
       priceCtrl.text = p.price.toString();
       cityCtrl.text = p.city;
       areaCtrl.text = p.area;
+      ownerNameCtrl.text = p.ownerName;
+      ownerPhoneCtrl.text = p.ownerPhone;
       type = p.type;
       purpose = p.purpose;
     }
@@ -98,6 +100,8 @@ class _PropertyFormPageState extends State<PropertyFormPage> {
     priceCtrl.dispose();
     cityCtrl.dispose();
     areaCtrl.dispose();
+    ownerNameCtrl.dispose();
+    ownerPhoneCtrl.dispose();
     super.dispose();
   }
 
@@ -150,15 +154,15 @@ class _PropertyFormPageState extends State<PropertyFormPage> {
         city: cityCtrl.text.trim(),
         area: areaCtrl.text.trim(),
         mediaPaths: widget.property?.mediaPaths ?? uploadedPaths,
-        mainImage: uploadedPaths.isNotEmpty
-            ? uploadedPaths.first
-            : widget.property?.mainImage,
+        mainImage: uploadedPaths.isNotEmpty ? uploadedPaths.first : widget.property?.mainImage,
         searchKeywords: keywords,
         createdAt: widget.property?.createdAt,
         updatedAt: Timestamp.now(),
         lat: lat,
         lng: lng,
         favoritesCount: 0,
+        ownerName: ownerNameCtrl.text.trim(),
+        ownerPhone: ownerPhoneCtrl.text.trim(),
       );
 
       if (widget.property == null) {
@@ -189,8 +193,7 @@ class _PropertyFormPageState extends State<PropertyFormPage> {
         Scaffold(
           resizeToAvoidBottomInset: true,
           appBar: AppBar(
-            title:
-                Text(widget.property == null ? 'إضافة عقار' : 'تعديل العقار'),
+            title: Text(widget.property == null ? 'إضافة عقار' : 'تعديل العقار'),
           ),
           body: SafeArea(
             child: SingleChildScrollView(
@@ -201,23 +204,24 @@ class _PropertyFormPageState extends State<PropertyFormPage> {
                 child: Column(
                   children: [
                     Form(
-                        key: _formKey,
-                        child: Column(
-                          children: [
-                            // Progress
-                            Padding(
-                              padding: const EdgeInsets.all(16),
-                              child: LinearProgressIndicator(
-                                value: (step + 1) / 4,
-                              ),
+                      key: _formKey,
+                      child: Column(
+                        children: [
+                          // Progress
+                          Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: LinearProgressIndicator(
+                              value: (step + 1) / 4,
                             ),
-                            AnimatedSwitcher(
-                              duration: const Duration(milliseconds: 400),
-                              child: _buildStep(),
-                            ),
-                            _buildBottomNavigationBar(),
-                          ],
-                        ),),
+                          ),
+                          AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 400),
+                            child: _buildStep(),
+                          ),
+                          _buildBottomNavigationBar(),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -327,6 +331,14 @@ class _PropertyFormPageState extends State<PropertyFormPage> {
           _stepTitle('المعلومات الأساسية'),
           _ultraInput(titleCtrl, 'العنوان', icon: Icons.home),
           _ultraInput(descCtrl, 'الوصف', maxLines: 3),
+          _ultraInput(ownerNameCtrl, 'اسم المالك', icon: Icons.person),
+          _ultraInput(
+            ownerPhoneCtrl,
+            'هاتف المالك',
+            icon: Icons.phone,
+            keyboard: TextInputType.phone,
+          ),
+          _ultraInput(priceCtrl, 'السعر', icon: Icons.attach_money, keyboard: TextInputType.number),
         ],
       ),
     );
@@ -360,21 +372,21 @@ class _PropertyFormPageState extends State<PropertyFormPage> {
         spacing: 8,
         runSpacing: 8,
         children: [
-  ...pickedImages.map(
-    (x) => kIsWeb
-        ? Image.network(
-            x.path,
-            width: 80,
-            height: 80,
-            fit: BoxFit.cover,
-          )
-        : Image.file(
-            File(x.path),
-            width: 80,
-            height: 80,
-            fit: BoxFit.cover,
+          ...pickedImages.map(
+            (x) => kIsWeb
+                ? Image.network(
+                    x.path,
+                    width: 80,
+                    height: 80,
+                    fit: BoxFit.cover,
+                  )
+                : Image.file(
+                    File(x.path),
+                    width: 80,
+                    height: 80,
+                    fit: BoxFit.cover,
+                  ),
           ),
-  ),
           GestureDetector(
             onTap: _pickImages,
             child: Container(
@@ -397,77 +409,77 @@ class _PropertyFormPageState extends State<PropertyFormPage> {
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Container(
-        height: 260,
-        margin: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-      borderRadius: BorderRadius.circular(20),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.black.withOpacity(0.15),
-          blurRadius: 12,
-        ),
-      ],
-        ),
-        child: ClipRRect(
-      borderRadius: BorderRadius.circular(20),
-      child: Stack(
-        children: [
-          // 🗺️ MAP FULL
-          Positioned.fill(
-            child: LocationPickerMap(
-              initialLat: lat,
-              initialLng: lng,
-              onPicked: (point) {
-                setState(() {
-                  lat = point.latitude;
-                  lng = point.longitude;
-                });
-              },
+          height: 260,
+          margin: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.15),
+                blurRadius: 12,
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: Stack(
+              children: [
+                // 🗺️ MAP FULL
+                Positioned.fill(
+                  child: LocationPickerMap(
+                    initialLat: lat,
+                    initialLng: lng,
+                    onPicked: (point) {
+                      setState(() {
+                        lat = point.latitude;
+                        lng = point.longitude;
+                      });
+                    },
+                  ),
+                ),
+
+                // 🌑 Overlay
+                Positioned(
+                  bottom: 12,
+                  left: 12,
+                  right: 12,
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.6),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Text(
+                      'اضغط على الخريطة لتحديد الموقع',
+                      style: TextStyle(color: Colors.white),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+
+                // 📍 Title فوق
+                Positioned(
+                  top: 12,
+                  left: 12,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.6),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Text(
+                      '📍 الموقع',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
-      
-          // 🌑 Overlay
-          Positioned(
-            bottom: 12,
-            left: 12,
-            right: 12,
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.6),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Text(
-                'اضغط على الخريطة لتحديد الموقع',
-                style: TextStyle(color: Colors.white),
-                textAlign: TextAlign.center,
-              ),
-            ),
-          ),
-      
-          // 📍 Title فوق
-          Positioned(
-            top: 12,
-            left: 12,
-            child: Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 6,
-              ),
-              decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.6),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Text(
-                '📍 الموقع',
-                style: TextStyle(color: Colors.white),
-              ),
-            ),
-          ),
-        ],
-      ),
         ),
-      ),
       ),
     );
   }

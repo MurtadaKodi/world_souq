@@ -99,7 +99,7 @@ class _LandingPageState extends State<LandingPage> {
     final items = [
       {
         'title': isArabic ? 'مستأجر' : 'Tenant',
-        'subtitle': isArabic ? 'ابحث واحجز زيارة' : 'Find & book a property',
+        'subtitle': isArabic ? 'ابحث واحجز زيارة' : 'Find & book future property',
         'icon': Icons.key_outlined,
         'size': 40.0,
         'role': UserRole.tenant,
@@ -116,45 +116,51 @@ class _LandingPageState extends State<LandingPage> {
     ];
 
     return Scaffold(
-    body: Stack(
-  children: [
-    Positioned.fill(
-      child: Image.network(
-        'https://res.cloudinary.com/dmklduciw/image/upload/v1768933674/tenant2_k8lf0e.webp',
-        fit: BoxFit.cover,
-      ),
-    ),
-
-    Positioned.fill(
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              Colors.black.withOpacity(0.6),
-              Colors.black.withOpacity(0.3),
-            ],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
+        body: Stack(
+      children: [
+        Positioned.fill(
+          child: Image.network(
+            'https://res.cloudinary.com/dmklduciw/image/upload/v1768933674/tenant2_k8lf0e.webp',
+            fit: BoxFit.cover,
           ),
         ),
-      ),
-    ),
-
-    SafeArea(
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          return SingleChildScrollView(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                minHeight: constraints.maxHeight,
+        Positioned.fill(
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Colors.black.withOpacity(0.6),
+                  Colors.black.withOpacity(0.3),
+                ],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
               ),
-              child: IntrinsicHeight(
-                child: Padding(
+            ),
+          ),
+        ),
+        SafeArea(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final isWide = constraints.maxWidth > 600;
+              if (isWide) {
+                return Row(
+                  children: [
+                    Expanded(child: buildDateTime(context, isArabic)),
+                    const SizedBox(width: 40),
+                    Expanded(
+                      child: buildDateTime(context, isArabic),
+                    ),
+                  ],
+                );
+              } else {
+                return SingleChildScrollView(
+                    child: Padding(
                   padding: const EdgeInsets.all(20),
-                  child: Column(
-                    children: [
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: MediaQuery.of(context).size.height,
+                    child: Column(children: [
                       const SizedBox(height: 40),
-
                       TweenAnimationBuilder<double>(
                         duration: const Duration(milliseconds: 800),
                         tween: Tween(begin: 0, end: 1),
@@ -182,63 +188,50 @@ class _LandingPageState extends State<LandingPage> {
                             ),
                             const SizedBox(height: 6),
                             Text(
-                              isArabic
-                                  ? 'اختر نوع الحساب'
-                                  : 'Choose account type',
+                              isArabic ? 'اختر نوع الحساب' : 'Choose account type',
                               style: const TextStyle(color: Colors.white70),
                             ),
                           ],
                         ),
                       ),
-
                       const SizedBox(height: 50),
-
-                      GridView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          mainAxisSpacing: 20,
-                          crossAxisSpacing: 20,
-                          childAspectRatio: 1.1,
-                        ),
-                        itemCount: items.length,
-                        itemBuilder: (context, index) {
-                          final item = items[index];
-
-                          return _LuxuryRoleCard(
-                            title: item['title'] as String,
-                            subtitle: item['subtitle'] as String,
-                            icon: item['icon'] as IconData,
-                            color: item['color'] as Color,
-                            delay: index * 200,
-                            onTap: () =>
-                                _go(context, item['role'] as UserRole),
-                          );
-                        },
+                      Column(
+                        children: [
+                          _LuxuryRoleCard(
+                            title: items[0]['title'] as String,
+                            subtitle: items[0]['subtitle'] as String,
+                            icon: items[0]['icon'] as IconData,
+                            color: items[0]['color'] as Color,
+                            delay: 0,
+                            onTap: () => _go(context, items[0]['role'] as UserRole),
+                          ),
+                          SizedBox(height: MediaQuery.of(context).size.height * 0.04),
+                          _LuxuryRoleCard(
+                            title: items[1]['title'] as String,
+                            subtitle: items[1]['subtitle'] as String,
+                            icon: items[1]['icon'] as IconData,
+                            color: items[1]['color'] as Color,
+                            delay: 200,
+                            onTap: () => _go(context, items[1]['role'] as UserRole),
+                          ),
+                          SizedBox(height: MediaQuery.of(context).size.height * 0.08),
+                        ],
                       ),
-
-                      const Spacer(),
-                    ],
+                    ]),
                   ),
-                ),
-              ),
-            ),
-          );
-        },
-      ),
-    ),
-  ],
-),
-    );
+                ));
+              }
+            },
+          ),
+        ),
+      ],
+    ));
   }
 }
 
 /// ================= Luxury Card =================
 
 class _LuxuryRoleCard extends StatelessWidget {
-
   const _LuxuryRoleCard({
     required this.title,
     required this.subtitle,
@@ -278,7 +271,6 @@ class _LuxuryRoleCard extends StatelessWidget {
           // 🧊 Glass Effect
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-
             child: Container(
               decoration: BoxDecoration(
                 color: Colors.white.withOpacity(0.1),
@@ -287,17 +279,12 @@ class _LuxuryRoleCard extends StatelessWidget {
                   color: Colors.white.withOpacity(0.2),
                 ),
               ),
-
               padding: const EdgeInsets.all(16),
-
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-
                   Icon(icon, size: 40, color: Colors.white),
-
                   const SizedBox(height: 10),
-
                   Text(
                     title,
                     style: const TextStyle(
@@ -306,9 +293,7 @@ class _LuxuryRoleCard extends StatelessWidget {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-
                   const SizedBox(height: 6),
-
                   Text(
                     subtitle,
                     textAlign: TextAlign.center,
@@ -328,4 +313,3 @@ class _LuxuryRoleCard extends StatelessWidget {
     );
   }
 }
-

@@ -1,10 +1,17 @@
 // ignore_for_file: inference_failure_on_instance_creation, deprecated_member_use, unused_local_variable
+import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:market_world/features/realestate/models/booking_model.dart';
 import 'package:market_world/features/realestate/models/property_model.dart';
+import 'package:market_world/features/realestate/pages/owner_bookings_page.dart';
+import 'package:market_world/features/realestate/pages/owner_properties_page.dart';
 import 'package:market_world/features/realestate/pages/property_form_page.dart';
+import 'package:market_world/features/realestate/pages/top_favorite_properties_page.dart';
 import 'package:market_world/features/realestate/services/booking_service.dart';
 import 'package:market_world/features/realestate/services/property_storage_service.dart';
+import 'package:market_world/features/storage/firebase_storage_service.dart';
 
 class LandlordDashboardPage extends StatelessWidget {
   const LandlordDashboardPage({super.key});
@@ -17,10 +24,10 @@ class LandlordDashboardPage extends StatelessWidget {
         body: Center(child: Text('يجب تسجيل الدخول')),
       );
     }
-
+    final PropertyStorageService _storageService = PropertyStorageService();
     final bookingService = BookingService();
     final propertyService = PropertyStorageService();
-
+    final storage = FirebaseStorageService();
     return Scaffold(
       floatingActionButton: FloatingActionButton.extended(
         icon: const Icon(Icons.add_home_work_outlined),
@@ -54,16 +61,88 @@ class LandlordDashboardPage extends StatelessWidget {
                 padding: const EdgeInsets.all(16),
                 sliver: SliverGrid(
                   delegate: SliverChildListDelegate([
-                    _StatCard('عقاراتي', data.propertiesCount, Icons.home,
-                        Colors.indigo,),
-                    _StatCard('الحجوزات', data.totalBookings, Icons.event,
-                        Colors.blue,),
-                    _StatCard('قيد الانتظار', data.pending,
-                        Icons.hourglass_bottom, Colors.orange,),
-                    _StatCard(
-                        'مكتملة', data.completed, Icons.verified, Colors.teal,),
-                    _StatCard('المفضلات', data.favorites, Icons.favorite,
-                        Colors.pink,),
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const OwnerPropertiesPage(),
+                          ),
+                        );
+                      },
+                      child: _StatCard(
+                        'عقاراتي',
+                        data.propertiesCount,
+                        Icons.home,
+                        Colors.indigo,
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const OwnerBookingsPage(),
+                          ),
+                        );
+                      },
+                      child: _StatCard(
+                        'الحجوزات',
+                        data.totalBookings,
+                        Icons.event,
+                        Colors.blue,
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const OwnerBookingsPage(
+                                statusFilter: 'pending', title: 'الحجوزات قيد الانتظار'),
+                          ),
+                        );
+                      },
+                      child: _StatCard(
+                        'قيد الانتظار',
+                        data.pending,
+                        Icons.hourglass_bottom,
+                        Colors.orange,
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const OwnerBookingsPage(
+                                statusFilter: 'completed', title: 'الحجوزات المكتملة'),
+                          ),
+                        );
+                      },
+                      child: _StatCard(
+                        'مكتملة',
+                        data.completed,
+                        Icons.verified,
+                        Colors.teal,
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const TopFavoritePropertiesPage(),
+                          ),
+                        );
+                      },
+                      child: _StatCard(
+                        'المفضلات',
+                        data.favorites,
+                        Icons.favorite,
+                        Colors.pink,
+                      ),
+                    ),
                   ]),
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 2,
@@ -142,7 +221,6 @@ class _DashboardHeader extends StatelessWidget {
 
 // 📊 2️⃣ Stat Card Widget
 class _StatCard extends StatelessWidget {
-
   const _StatCard(this.label, this.value, this.icon, this.color);
   final String label;
   final int value;
@@ -189,7 +267,6 @@ class _StatCard extends StatelessWidget {
 // 📊 3️⃣ Grid الإحصائيات
 // ignore: unused_element
 class _StatsGrid extends StatelessWidget {
-
   const _StatsGrid({
     required this.propertiesCount,
     required this.stats,
@@ -211,10 +288,18 @@ class _StatsGrid extends StatelessWidget {
       children: [
         _StatCard('عقاراتي', propertiesCount, Icons.home, Colors.indigo),
         _StatCard('الحجوزات', stats['total'] ?? 0, Icons.event, Colors.blue),
-        _StatCard('قيد الانتظار', stats['pending'] ?? 0, Icons.hourglass_bottom,
-            Colors.orange,),
         _StatCard(
-            'مكتملة', stats['completed'] ?? 0, Icons.verified, Colors.teal,),
+          'قيد الانتظار',
+          stats['pending'] ?? 0,
+          Icons.hourglass_bottom,
+          Colors.orange,
+        ),
+        _StatCard(
+          'مكتملة',
+          stats['completed'] ?? 0,
+          Icons.verified,
+          Colors.teal,
+        ),
         _StatCard('المفضلات', favoritesCount, Icons.favorite, Colors.pink),
       ],
     );
@@ -223,22 +308,52 @@ class _StatsGrid extends StatelessWidget {
 
 Stream<DashboardData> _dashboardStream(String uid) {
   final propertyService = PropertyStorageService();
+  final bookingService = BookingService();
 
-  final propertiesStream = propertyService.streamMyPropertiesCount(uid);
+  final controller = StreamController<DashboardData>();
 
-  return propertiesStream.map((count) {
-    return DashboardData(
-      propertiesCount: count,
-      totalBookings: 0,
-      pending: 0,
-      completed: 0,
-      favorites: 0,
+  int propertiesCount = 0;
+  int favorites = 0;
+  List<BookingModel> bookings = [];
+
+  void emit() {
+    controller.add(
+      DashboardData(
+        propertiesCount: propertiesCount,
+        totalBookings: bookings.length,
+        pending: bookings.where((b) => b.status == 'pending').length,
+        completed: bookings.where((b) => b.status == 'completed').length,
+        favorites: favorites,
+      ),
     );
+  }
+
+  final sub1 = propertyService.streamMyPropertiesCount(uid).listen((v) {
+    propertiesCount = v;
+    emit();
   });
+
+  final sub2 = propertyService.streamTotalFavoritesForOwner(uid).listen((v) {
+    favorites = v;
+
+    emit();
+  });
+
+  final sub3 = bookingService.streamOwnerBookings().listen((v) {
+    bookings = v;
+    emit();
+  });
+
+  controller.onCancel = () {
+    sub1.cancel();
+    sub2.cancel();
+    sub3.cancel();
+  };
+
+  return controller.stream;
 }
 
 class DashboardData {
-
   DashboardData({
     required this.propertiesCount,
     required this.totalBookings,
@@ -255,7 +370,6 @@ class DashboardData {
 
 // 💰 3️⃣ بطاقة الأرباح
 class _RevenueCard extends StatelessWidget {
-
   const _RevenueCard({required this.totalBookings});
   final int totalBookings;
 
@@ -303,7 +417,14 @@ class _QuickActions extends StatelessWidget {
           child: ElevatedButton.icon(
             icon: const Icon(Icons.home_work),
             label: const Text('عقاراتي'),
-            onPressed: () {},
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const OwnerPropertiesPage(),
+                ),
+              );
+            },
           ),
         ),
         const SizedBox(width: 12),
@@ -311,7 +432,14 @@ class _QuickActions extends StatelessWidget {
           child: ElevatedButton.icon(
             icon: const Icon(Icons.calendar_today),
             label: const Text('الحجوزات'),
-            onPressed: () {},
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const OwnerBookingsPage(),
+                ),
+              );
+            },
           ),
         ),
       ],
@@ -321,13 +449,13 @@ class _QuickActions extends StatelessWidget {
 
 // 🏆 5️⃣ أفضل العقارات
 class _TopFavorites extends StatelessWidget {
-
   const _TopFavorites({required this.uid});
   final String uid;
 
   @override
   Widget build(BuildContext context) {
     final propertyService = PropertyStorageService();
+    final storage = FirebaseStorageService();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -358,65 +486,68 @@ class _TopFavorites extends StatelessWidget {
                   final p = properties[index];
 
                   return Container(
-  width: 220,
-  margin: const EdgeInsets.only(right: 12),
-  decoration: BoxDecoration(
-    borderRadius: BorderRadius.circular(16),
-  ),
-  child: ClipRRect(
-    borderRadius: BorderRadius.circular(16),
-    child: Stack(
-      children: [
-        // 🖼️ الصورة
-        Positioned.fill(
-          child: (p.imageUrls != null && p.imageUrls!.isNotEmpty)
-              ? Image.network(
-                  p.imageUrls!.first,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => _placeholder(),
-                  loadingBuilder: (_, child, progress) {
-                    if (progress == null) return child;
-                    return _placeholder();
-                  },
-                )
-              : _placeholder(),
-        ),
+                    width: 220,
+                    margin: const EdgeInsets.only(right: 12),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: Stack(
+                        children: [
+                          // 🖼️ الصورة
+                          Positioned.fill(
+                            child: p.mediaPaths.isNotEmpty
+                                ? Image.network(
+                                    p.mediaPaths.first,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) => _placeholder(),
+                                    loadingBuilder: (_, child, progress) {
+                                      if (progress == null) {
+                                        return child;
+                                      }
 
-        // 🌑 overlay
-        Positioned.fill(
-          child: Container(
-            color: Colors.black.withOpacity(0.4),
-          ),
-        ),
+                                      return _placeholder();
+                                    },
+                                  )
+                                : _placeholder(),
+                          ),
 
-        // 📄 النص
-        Positioned(
-          left: 12,
-          right: 12,
-          bottom: 12,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                p.title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              Text(
-                '${p.price} ر.ق',
-                style: const TextStyle(color: Colors.white70),
-              ),
-            ],
-          ),
-        ),
-      ],
-    ),
-  ),
-);
+                          // 🌑 overlay
+                          Positioned.fill(
+                            child: Container(
+                              color: Colors.black.withOpacity(0.4),
+                            ),
+                          ),
+
+                          // 📄 النص
+                          Positioned(
+                            left: 12,
+                            right: 12,
+                            bottom: 12,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  p.title,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                Text(
+                                  '${p.price} ر.ق',
+                                  style: const TextStyle(color: Colors.white70),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
                 },
               );
             },
@@ -425,12 +556,13 @@ class _TopFavorites extends StatelessWidget {
       ],
     );
   }
-  
-Widget _placeholder() {
-  return Container(
-    color: Colors.grey[300],
-    child: const Center(
-      child: Icon(Icons.image, size: 40, color: Colors.grey),
-    ),
-  );
-}}
+
+  Widget _placeholder() {
+    return Container(
+      color: Colors.grey[300],
+      child: const Center(
+        child: Icon(Icons.image, size: 40, color: Colors.grey),
+      ),
+    );
+  }
+}

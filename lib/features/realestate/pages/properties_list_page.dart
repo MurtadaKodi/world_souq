@@ -14,6 +14,7 @@ class PropertiesListPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final service = PropertyService();
     return Scaffold(
+       backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: Localizations.localeOf(context).languageCode == 'ar' ? const Text('قائمة العقارات') : const Text('Properties List'),
         centerTitle: true,
@@ -56,6 +57,7 @@ class _PropertyCard extends StatelessWidget {
       context,
       MaterialPageRoute(
         builder: (_) => PropertyDetailsFullScreen(
+          
           property: property,
 
           // 🔥 إغلاق التفاصيل
@@ -147,7 +149,7 @@ class _PropertyCard extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        '${property.price} ر.ق',
+                        '${property.price} ${property.currency}',
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           color: Colors.green,

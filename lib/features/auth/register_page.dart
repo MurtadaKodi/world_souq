@@ -1,4 +1,6 @@
-// ignore_for_file: avoid_catches_without_on_clauses, inference_failure_on_instance_creation
+// ignore_for_file: deprecated_member_use, avoid_catches_without_on_clauses, inference_failure_on_instance_creation
+
+import 'dart:ui';
 
 import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:flutter/material.dart';
@@ -153,47 +155,176 @@ Future.delayed(const Duration(seconds: 1), () {
   }
 }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          Localizations.localeOf(context).languageCode == 'ar'
-              ? 'إنشاء حساب'
-              : 'Create Account',
+ @override
+Widget build(BuildContext context) {
+  final isArabic =
+      Localizations.localeOf(context).languageCode == 'ar';
+
+  return Scaffold(
+    body: Stack(
+      children: [
+        // 🖼️ Background
+        Positioned.fill(
+          child: Image.asset(
+            'lib/assets/images/login_bg2.jpeg',
+            fit: BoxFit.cover,
+          ),
         ),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            TextField(
-              controller: emailCtrl,
-              decoration: const InputDecoration(
-                labelText: 'Email',
-                prefixIcon: Icon(Icons.email_outlined),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: passCtrl,
-              obscureText: true,
-              decoration: const InputDecoration(
-                labelText: 'Password',
-                prefixIcon: Icon(Icons.lock_outline),
-              ),
-            ),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton(
-                onPressed: loading ? null : _register,
-                child: Text(loading ? '...' : 'Create'),
-              ),
-            ),
-          ],
+
+        // 🌫️ Overlay
+        Positioned.fill(
+          child: Container(
+            color: Colors.black.withOpacity(0.5),
+          ),
         ),
-      ),
-    );
-  }
+
+        // ✨ Content
+        Center(
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(30),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+                  child: Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(30),
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.2),
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // 👑 Title
+                        const Text(
+                          'Dari',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+
+                        const SizedBox(height: 8),
+
+                        Text(
+                          isArabic ? 'إنشاء حساب' : 'Create Account',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: Colors.white70,
+                          ),
+                        ),
+
+                        const SizedBox(height: 30),
+
+                        // 📧 Email
+                        TextField(
+                          controller: emailCtrl,
+                          style: const TextStyle(color: Colors.white),
+                          decoration: InputDecoration(
+                            hintText:
+                                isArabic ? 'البريد الإلكتروني' : 'Email',
+                            hintStyle:
+                                const TextStyle(color: Colors.white54),
+                            prefixIcon: const Icon(Icons.email,
+                                color: Colors.white),
+                            filled: true,
+                            fillColor: Colors.white.withOpacity(0.1),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(25),
+                              borderSide: BorderSide.none,
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        // 🔒 Password
+                        TextField(
+                          controller: passCtrl,
+                          obscureText: true,
+                          style: const TextStyle(color: Colors.white),
+                          decoration: InputDecoration(
+                            hintText:
+                                isArabic ? 'كلمة المرور' : 'Password',
+                            hintStyle:
+                                const TextStyle(color: Colors.white54),
+                            prefixIcon: const Icon(Icons.lock,
+                                color: Colors.white),
+                            filled: true,
+                            fillColor: Colors.white.withOpacity(0.1),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(25),
+                              borderSide: BorderSide.none,
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 30),
+
+                        // 🚀 Register Button
+                        Container(
+                          height: 55,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(30),
+                            gradient: const LinearGradient(
+                              colors: [
+                                Colors.purple,
+                                Colors.blue,
+                              ],
+                            ),
+                          ),
+                          child: ElevatedButton(
+                            onPressed: loading ? null : _register,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.transparent,
+                              shadowColor: Colors.transparent,
+                              shape: RoundedRectangleBorder(
+                                borderRadius:
+                                    BorderRadius.circular(30),
+                              ),
+                            ),
+                            child: loading
+                                ? const CircularProgressIndicator(
+                                    color: Colors.white,
+                                  )
+                                : Text(
+                                    isArabic ? 'إنشاء حساب' : 'Register',
+                                    style:
+                                        const TextStyle(fontSize: 16),
+                                  ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 20),
+
+                        // 🔙 Back to Login
+                        TextButton(
+                          onPressed: () {
+                            Navigator.pop(context);
+                          },
+                          child: Text(
+                            isArabic
+                                ? 'لديك حساب؟ تسجيل الدخول'
+                                : 'Already have an account? Login',
+                            style: const TextStyle(color: Colors.white),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+}
 }

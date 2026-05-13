@@ -2,7 +2,7 @@ name: market_world
 description: A new Flutter project.
 publish_to: "none"
 
-version: 1.0.0+1
+version: 1.0.1+2
 
 environment:
   sdk:  ^3.4.0
@@ -31,7 +31,7 @@ dependencies:
   hive: 2.2.3
   hive_flutter: 1.1.0
   http: ^1.6.0
-  image_picker: ^1.1.2
+  image_picker: ^1.2.2
   intl: ^0.20.2
   latlong2: 0.9.1
   permission_handler: ^12.0.1
@@ -55,6 +55,10 @@ flutter:
     - lib/assets/images/splash.png
     - lib/assets/images/login_bg.jpeg
     - lib/assets/images/login_bg2.jpeg
+    - lib/assets/images/login_bg.jpg
+    - lib/assets/images/whatsapp_icon.png
+
+
 
 
     

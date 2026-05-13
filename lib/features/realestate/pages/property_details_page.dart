@@ -12,11 +12,14 @@ import 'package:market_world/features/realestate/widgets/booking_dialog.dart';
 import 'package:market_world/features/realestate/widgets/property_mini_map_ultra.dart';
 import 'package:market_world/features/realestate/widgets/simple_photo_view.dart';
 import 'package:market_world/features/storage/firebase_storage_service.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class PropertyDetailsFullScreen extends StatefulWidget {
-
   const PropertyDetailsFullScreen({
-    required this.property, required this.onBook, required this.onClose, super.key,
+    required this.property,
+    required this.onBook,
+    required this.onClose,
+    super.key,
     this.onNavigate,
   });
   final PropertyModel property;
@@ -25,8 +28,7 @@ class PropertyDetailsFullScreen extends StatefulWidget {
   final VoidCallback onBook;
 
   @override
-  State<PropertyDetailsFullScreen> createState() =>
-      _PropertyDetailsFullScreenState();
+  State<PropertyDetailsFullScreen> createState() => _PropertyDetailsFullScreenState();
 }
 
 class _PropertyDetailsFullScreenState extends State<PropertyDetailsFullScreen> {
@@ -44,8 +46,7 @@ class _PropertyDetailsFullScreenState extends State<PropertyDetailsFullScreen> {
   double _dragOffset = 0;
   final double _dragThreshold = 120; // مقدار السحب للإغلاق
   TapDownDetails? _doubleTapDetails;
-  final TransformationController transformationController =
-      TransformationController();
+  final TransformationController transformationController = TransformationController();
   bool _isZoomed = false;
   Timer? _autoSlideTimer;
 
@@ -154,9 +155,8 @@ class _PropertyDetailsFullScreenState extends State<PropertyDetailsFullScreen> {
 
       setState(() {
         _userLatLng = user;
-        _distanceText = km < 1
-            ? '${distanceInMeters.toStringAsFixed(0)} متر'
-            : '${km.toStringAsFixed(1)} كم';
+        _distanceText =
+            km < 1 ? '${distanceInMeters.toStringAsFixed(0)} متر' : '${km.toStringAsFixed(1)} كم';
 
         polylines = {
           Polyline(
@@ -225,39 +225,44 @@ class _PropertyDetailsFullScreenState extends State<PropertyDetailsFullScreen> {
         transform: Matrix4.identity()
           ..translate(0.0, _dragOffset)
           ..scale(scale),
-        child: Scaffold(
-          backgroundColor: Colors.white,
-          body: Stack(
-            children: [
-              /// =========================
-              /// BACKGROUND BLUR
-              /// =========================
-              BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                child: Container(
-                  color: Colors.black.withOpacity(0.2),
+        child: ClipRRect(
+           borderRadius: BorderRadius.circular(28),
+          child: Scaffold(
+            backgroundColor: Colors.transparent,
+            body: Stack(
+              children: [
+                /// =========================
+                /// BACKGROUND BLUR
+                /// =========================
+                BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                  child: Container(
+                    color: Colors.black.withOpacity(0.25),
+                  ),
                 ),
-              ),
-
-              /// =========================
-              /// CONTENT
-              /// =========================
-              SafeArea(
+          
+                /// =========================
+                /// CONTENT
+                /// =========================
+                SafeArea(
                   child: CustomScrollView(
-                slivers: [
-                  /// ================= IMAGE (PARALLAX) =================
-                  SliverAppBar(
-                    expandedHeight: 320,
-                    pinned: true,
-                    backgroundColor: Colors.black,
-                    leading: const SizedBox(), // نستخدم زرنا الخاص
-
-                    flexibleSpace: FlexibleSpaceBar(
-                      background: Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          /// ================= IMAGES =================
-                          if (_loadingImages) const Center(child: CircularProgressIndicator()) else PageView.builder(
+                    slivers: [
+                      /// ================= IMAGE (PARALLAX) =================
+                      SliverAppBar(
+                        expandedHeight: 320,
+                        pinned: true,
+                        backgroundColor: Colors.black,
+                        leading: const SizedBox(), // نستخدم زرنا الخاص
+          
+                        flexibleSpace: FlexibleSpaceBar(
+                          background: Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              /// ================= IMAGES =================
+                              if (_loadingImages)
+                                const Center(child: CircularProgressIndicator())
+                              else
+                                PageView.builder(
                                   controller: _controller,
                                   itemCount: _resolvedImages.length,
                                   physics: _isZoomed
@@ -267,10 +272,9 @@ class _PropertyDetailsFullScreenState extends State<PropertyDetailsFullScreen> {
                                     setState(() {
                                       _currentIndex = i;
                                       _isZoomed = false;
-                                      transformationController.value =
-                                          Matrix4.identity();
+                                      transformationController.value = Matrix4.identity();
                                     });
-
+          
                                     _autoSlideTimer?.cancel();
                                     _startAutoSlide();
                                   },
@@ -281,14 +285,15 @@ class _PropertyDetailsFullScreenState extends State<PropertyDetailsFullScreen> {
                                       children: [
                                         /// 🖼️ IMAGE (FIXED)
                                         Hero(
-                                            tag: image,
-                                            child: GestureDetector(
-                                              child: Image.network(
-                                                image,
-                                                fit: BoxFit.cover,
-                                              ),
-                                            ),),
-
+                                          tag: image,
+                                          child: GestureDetector(
+                                            child: Image.network(
+                                              image,
+                                              fit: BoxFit.cover,
+                                            ),
+                                          ),
+                                        ),
+          
                                         /// 🔍 FULLSCREEN BUTTON
                                         Positioned(
                                           right: 16,
@@ -298,8 +303,7 @@ class _PropertyDetailsFullScreenState extends State<PropertyDetailsFullScreen> {
                                               Navigator.push(
                                                 context,
                                                 MaterialPageRoute(
-                                                  builder: (_) =>
-                                                      SimplePhotoView(
+                                                  builder: (_) => SimplePhotoView(
                                                     images: _resolvedImages,
                                                     initialIndex: index,
                                                   ),
@@ -324,220 +328,358 @@ class _PropertyDetailsFullScreenState extends State<PropertyDetailsFullScreen> {
                                     );
                                   },
                                 ),
-
-                          /// ================= DOTS =================
-                          if (_resolvedImages.length > 1)
-                            Positioned(
-                              bottom: 12,
-                              left: 0,
-                              right: 0,
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: List.generate(
-                                  _resolvedImages.length,
-                                  (i) => AnimatedContainer(
-                                    duration: const Duration(milliseconds: 300),
-                                    margin: const EdgeInsets.symmetric(
-                                        horizontal: 4,),
-                                    width: _currentIndex == i ? 20 : 8,
-                                    height: 8,
-                                    decoration: BoxDecoration(
-                                      color: _currentIndex == i
-                                          ? Colors.white
-                                          : Colors.white54,
-                                      borderRadius: BorderRadius.circular(8),
+          
+                              /// ================= DOTS =================
+                              if (_resolvedImages.length > 1)
+                                Positioned(
+                                  bottom: 12,
+                                  left: 0,
+                                  right: 0,
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: List.generate(
+                                      _resolvedImages.length,
+                                      (i) => AnimatedContainer(
+                                        duration: const Duration(milliseconds: 300),
+                                        margin: const EdgeInsets.symmetric(
+                                          horizontal: 4,
+                                        ),
+                                        width: _currentIndex == i ? 20 : 8,
+                                        height: 8,
+                                        decoration: BoxDecoration(
+                                          color: _currentIndex == i ? Colors.white : Colors.white54,
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                      ),
                                     ),
                                   ),
                                 ),
+          
+                              /// ================= GRADIENT =================
+                              Container(
+                                decoration: const BoxDecoration(
+                                  gradient: LinearGradient(
+                                    begin: Alignment.bottomCenter,
+                                    end: Alignment.topCenter,
+                                    colors: [
+                                      Colors.black54,
+                                      Colors.transparent,
+                                    ],
+                                  ),
+                                ),
                               ),
-                            ),
-
-                          /// ================= GRADIENT =================
-                          Container(
-                            decoration: const BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.bottomCenter,
-                                end: Alignment.topCenter,
-                                colors: [
-                                  Colors.black54,
-                                  Colors.transparent,
+                            ],
+                          ),
+                        ),
+                      ),
+          
+                      /// ================= DETAILS =================
+                      SliverToBoxAdapter(
+                        child: Container(
+                          padding: const EdgeInsets.all(20),
+                          decoration: const BoxDecoration(
+                            color: Colors.transparent,
+                            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              /// DISTANCE
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  if (_distanceText != null)
+                                    Text(
+                                      Localizations.localeOf(context).languageCode == 'ar'
+                                          ? 'يبعد $_distanceText عنك'
+                                          : '$_distanceText away from you',
+                                      style: const TextStyle(color: Colors.white),
+                                    ),
+          
+                                  const SizedBox(width: 120),
+          
+                                  /// LOCATION
+                                  Text(
+                                    '${widget.property.city} - ${widget.property.area}',
+                                    style: const TextStyle(color: Colors.white),
+                                  ),
+          
+                                  const SizedBox(height: 20),
                                 ],
                               ),
-                            ),
+          
+                              /// DESCRIPTION
+                              Center(
+                                child: Text(
+                                  Localizations.localeOf(context).languageCode == 'ar'
+                                      ? 'الوصف'
+                                      : 'Description',
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold, fontSize: 14, color: Colors.grey),
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Center(
+                                  child: Text(
+                                widget.property.description,
+                                style: const TextStyle(fontSize: 14, color: Colors.white),
+                              )),
+          
+                              const SizedBox(height: 30),
+          
+                              /// 👤 OWNER INFO
+                              if (widget.property.ownerName.isNotEmpty ||
+                                  widget.property.ownerPhone.isNotEmpty)
+                                Container(
+                                  margin: const EdgeInsets.only(bottom: 20),
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.transparent,
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(color: Colors.grey.shade200),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        Localizations.localeOf(context).languageCode == 'ar'
+                                            ? 'معلومات المالك'
+                                            : 'Owner Info',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+          
+                                      const SizedBox(height: 10),
+          
+                                      /// 👤 Name
+                                      if (widget.property.ownerName.isNotEmpty)
+                                        Row(
+                                          children: [
+                                            const Icon(Icons.person, size: 18, color: Colors.white),
+                                            const SizedBox(width: 6),
+                                            Text(widget.property.ownerName, style: const TextStyle(color: Colors.white)),
+                                          ],
+                                        ),
+          
+                                      const SizedBox(height: 8),
+          
+                                      /// 📞 Phone
+                                      if (widget.property.ownerPhone.isNotEmpty)
+                                        Row(
+                                          children: [
+                                            const Icon(Icons.phone, size: 18, color: Colors.green),
+                                            const SizedBox(width: 6),
+                                            Text(widget.property.ownerPhone,
+                                                style: const TextStyle(color: Colors.green)),
+                                          ],
+                                        ),
+          
+                                      const SizedBox(height: 12),
+          
+                                      /// ☎️ Call Button
+                                      if (widget.property.ownerPhone.isNotEmpty)
+                                        SizedBox(
+                                          width: double.infinity,
+                                          child: ElevatedButton.icon(
+                                            onPressed: () async {
+                                              final uri =
+                                                  Uri.parse('tel:${widget.property.ownerPhone}');
+                                              // ignore: use_build_context_synchronously
+                                              await launchUrl(uri);
+                                            },
+                                            icon: const Icon(Icons.call),
+                                            label: Text(
+                                              Localizations.localeOf(context).languageCode == 'ar'
+                                                  ? 'اتصال مباشر'
+                                                  : 'Call Now',
+                                            ),
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: Colors.transparent,
+                                              foregroundColor: Colors.white,
+                                              padding: const EdgeInsets.symmetric(vertical: 10),
+                                              shape: RoundedRectangleBorder(
+                                                side: const BorderSide(color: Colors.white30),
+                                                borderRadius: BorderRadius.circular(12),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      const SizedBox(height: 10),
+                                      if (widget.property.ownerPhone.isNotEmpty)
+                                        SizedBox(
+                                          width: double.infinity,
+                                          child: OutlinedButton.icon(
+                                            onPressed: () async {
+                                              var phone = widget.property.ownerPhone
+                                                  .replaceAll(RegExp(r'[^0-9]'), '');
+          
+                                              // قطر: إذا الرقم 8 أرقام نضيف 974
+                                              if (phone.length == 8) {
+                                                phone = '974$phone';
+                                              }
+          
+                                              final message = Uri.encodeComponent(
+                                                'مرحباً، أنا مهتم بالعقار: ${widget.property.title}',
+                                              );
+          
+                                              final uri =
+                                                  Uri.parse('https://wa.me/$phone?text=$message');
+          
+                                              await launchUrl(
+                                                uri,
+                                                mode: LaunchMode.externalApplication,
+                                              );
+                                            },
+                                            icon: const Icon(Icons.chat),
+                                            label: Text(
+                                              Localizations.localeOf(context).languageCode == 'ar'
+                                                  ? 'تواصل واتساب'
+                                                  : 'WhatsApp',
+                                            ),
+                                            style: OutlinedButton.styleFrom(
+                                              foregroundColor: Colors.green,
+                                              side: const BorderSide(color: Colors.white30),
+                                              padding: const EdgeInsets.symmetric(vertical: 10),
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius: BorderRadius.circular(12),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+          
+                              /// MINI MAP (👇)
+                              if (widget.property.lat != null && widget.property.lng != null)
+                                PropertyMiniMapUltra(
+                                  const SizedBox(),
+                                  lat: widget.property.lat!,
+                                  lng: widget.property.lng!,
+                                  title:
+                                      // ignore: dead_null_aware_expression
+                                      widget.property.title ?? 'Property Location',
+                                ),
+                                                                const SizedBox(height: 90),
+          
+                            ],
                           ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  /// ================= DETAILS =================
-                  SliverToBoxAdapter(
-                    child: Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: const BoxDecoration(
-                        color: Colors.transparent,
-                        borderRadius:
-                            BorderRadius.vertical(top: Radius.circular(28)),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          /// PRICE
-                          // Center(
-                          //   child: Text(
-                          //     '${widget.property.price.toStringAsFixed(0)} ${widget.property.currency}',
-                          //     style: const TextStyle(
-                          //         fontSize: 20, color: Colors.black),
-                          //   ),
-                          // ),
-
-                          // const SizedBox(height: 10),
-
-                          /// DISTANCE
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [if (_distanceText != null)
-                            Text(
-                             Localizations.localeOf(context).languageCode == 'ar' ? 'يبعد $_distanceText عنك' : '$_distanceText away from you',
-                              style: const TextStyle(color: Colors.blue),
-                            ),
-
-                          const SizedBox(width: 120),
-
-                          /// LOCATION
-                          Text(
-                            '${widget.property.city} - ${widget.property.area}',
-                            style: const TextStyle(color: Colors.grey),
-                          ),
-
-                          const SizedBox(height: 20),
-],
-                          ),
-
-                          
-                          /// DESCRIPTION
-                          Center(
-                            child: Text(
-                              Localizations.localeOf(context).languageCode == 'ar' ? 'الوصف' : 'Description',
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14,color: Colors.grey),
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Center(child: Text(widget.property.description, style: const TextStyle(fontSize: 14, color: Colors.black87),)),
-
-                          const SizedBox(height: 30),
-
-                          /// MINI MAP (👇)
-                          if (widget.property.lat != null &&
-                              widget.property.lng != null)
-                            PropertyMiniMapUltra(
-                              lat: widget.property.lat!,
-                              lng: widget.property.lng!,
-                              title:
-                                  // ignore: dead_null_aware_expression
-                                  widget.property.title ?? 'Property Location',
-                            ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),),
-
-              /// CLOSE BUTTON
-              Positioned(
-                top: 20,
-                right: 20,
-                child: GestureDetector(
-                  onTap: widget.onClose,
-                  child: const CircleAvatar(
-                    backgroundColor: Colors.black54,
-                    child: Icon(Icons.close, color: Colors.white),
-                  ),
-                ),
-              ),
-              Positioned(
-                bottom: 0,
-                left: 0,
-                right: 0,
-                child: Container(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.08),
-                        blurRadius: 1,
-                        offset: const Offset(0, -3),
+                        ),
                       ),
                     ],
                   ),
-                  child: Row(
-                    children: [
-                      // 💰 السعر
-                      Expanded(
-                        flex: 2,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              '${widget.property.price.toStringAsFixed(0)} ${widget.property.currency}',
+                ),
+          
+                /// CLOSE BUTTON
+                Positioned(
+                  top: 20,
+                  right: 20,
+                  child: GestureDetector(
+                    onTap: widget.onClose,
+                    child: const CircleAvatar(
+                      backgroundColor: Colors.black54,
+                      child: Icon(Icons.close, color: Colors.white),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  child: Container(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.08),
+                          blurRadius: 1,
+                          offset: const Offset(0, -3),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        // 💰 السعر
+                        Expanded(
+                          flex: 2,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '${widget.property.price.toStringAsFixed(0)} ${widget.property.currency}',
+                                style: const TextStyle(
+                                  shadows: [
+                                    Shadow(
+                                      color: Colors.black26,
+                                      blurRadius: 4,
+                                      offset: Offset(0, 2),
+                                    ),
+                                  ],
+                                  color: Colors.black,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                Localizations.localeOf(context).languageCode == 'ar'
+                                    ? 'السعر الإجمالي'
+                                    : 'Total Price',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+          
+                        const SizedBox(width: 12),
+          
+                        // 📅 زر الحجز
+                        Expanded(
+                          flex: 3,
+                          child: ElevatedButton(
+                            onPressed: () {
+                              showModalBottomSheet(
+                                context: context,
+                                isScrollControlled: true,
+                                backgroundColor: Colors.transparent,
+                                builder: (_) => BookingDialog(
+                                  property: widget.property,
+                                  propertyId: widget.property.id,
+                                  propertyName: widget.property.title,
+                                  ownerId: widget.property.ownerId,
+                                ),
+                              );
+                            },
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: Text(
+                              Localizations.localeOf(context).languageCode == 'ar'
+                                  ? 'حجز موعد'
+                                  : 'Book Appointment',
                               style: const TextStyle(
-                                fontSize: 18,
+                                fontSize: 16,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            const SizedBox(height: 2),
-                            Text(
-                              Localizations.localeOf(context).languageCode == 'ar' ? 'السعر الإجمالي' : 'Total Price',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      const SizedBox(width: 12),
-
-                      // 📅 زر الحجز
-                      Expanded(
-                        flex: 3,
-                        child: ElevatedButton(
-                          onPressed: () {
-                            showModalBottomSheet(
-                              context: context,
-                              isScrollControlled: true,
-                              backgroundColor: Colors.transparent,
-                              builder: (_) => BookingDialog(
-                                property: widget.property,
-                                propertyId: widget.property.id,
-                                propertyName: widget.property.title,
-                                ownerId: widget.property.ownerId,
-                              ),
-                            );
-                          },
-                          style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          child: Text(
-                            Localizations.localeOf(context).languageCode == 'ar' ? 'حجز موعد' : 'Book Appointment',
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -563,7 +705,6 @@ class _PropertyDetailsFullScreenState extends State<PropertyDetailsFullScreen> {
 }
 
 class _FavoriteButton extends StatelessWidget {
-
   const _FavoriteButton({
     required this.propertyId,
     required this.service,
@@ -581,9 +722,7 @@ class _FavoriteButton extends StatelessWidget {
         return _CircleButton(
           icon: isFav ? Icons.favorite : Icons.favorite_border,
           onTap: () {
-            isFav
-                ? service.removeFromFavorites(propertyId)
-                : service.addToFavorites(propertyId);
+            isFav ? service.removeFromFavorites(propertyId) : service.addToFavorites(propertyId);
           },
         );
       },
@@ -592,26 +731,42 @@ class _FavoriteButton extends StatelessWidget {
 }
 
 class _CircleButton extends StatelessWidget {
-
   const _CircleButton({required this.icon, this.onTap});
   final IconData icon;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: CircleAvatar(
-        backgroundColor: Colors.black54,
-        child: Icon(icon, color: Colors.white),
-      ),
+    return TweenAnimationBuilder(
+      tween: Tween(begin: .92, end: 1),
+      duration: const Duration(milliseconds: 420),
+      curve: Curves.easeOutCubic,
+      builder: (context, value, child) {
+        return AnimatedSlide(
+          offset: Offset(0, (1 - value) * .08),
+          duration: const Duration(milliseconds: 420),
+          child: AnimatedOpacity(
+            opacity: value as double,
+            duration: const Duration(milliseconds: 420),
+            child: Transform.scale(
+              scale: value,
+              child: GestureDetector(
+                onTap: onTap,
+                child: CircleAvatar(
+                  backgroundColor: Colors.black54,
+                  child: Icon(icon, color: Colors.white),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
-}
 
+}
 // ignore: unused_element
 class _HeaderSliver extends StatelessWidget {
-
   const _HeaderSliver({
     required this.images,
     required this.loading,
@@ -636,7 +791,7 @@ class _HeaderSliver extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SliverAppBar(
-      expandedHeight: 320,
+      expandedHeight: MediaQuery.of(context).size.height * 0.25,
       pinned: true,
       backgroundColor: Colors.black,
       flexibleSpace: FlexibleSpaceBar(
@@ -644,40 +799,41 @@ class _HeaderSliver extends StatelessWidget {
           fit: StackFit.expand,
           children: [
             /// IMAGE SLIDER
-            if (loading) const Center(child: CircularProgressIndicator()) else PageView.builder(
-                    allowImplicitScrolling: true,
-                    physics: isZoomed
-                        ? const NeverScrollableScrollPhysics()
-                        : const BouncingScrollPhysics(),
-                    controller: controller,
-                    itemCount: images.length,
-                    onPageChanged: onPageChanged,
-                    itemBuilder: (_, index) {
-                      final image = images[index];
+            if (loading)
+              const Center(child: CircularProgressIndicator())
+            else
+              PageView.builder(
+                allowImplicitScrolling: true,
+                physics:
+                    isZoomed ? const NeverScrollableScrollPhysics() : const BouncingScrollPhysics(),
+                controller: controller,
+                itemCount: images.length,
+                onPageChanged: onPageChanged,
+                itemBuilder: (_, index) {
+                  final image = images[index];
 
-                      return Hero(
-                        tag: image,
-                        child: GestureDetector(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => SimplePhotoView(
-                                  images:
-                                      images, // نفس الصور المستخدمة في slider
-                                  initialIndex: index,
-                                ),
-                              ),
-                            );
-                          },
-                          child: Image.network(
-                            image,
-                            fit: BoxFit.cover,
+                  return Hero(
+                    tag: image,
+                    child: GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => SimplePhotoView(
+                              images: images, // نفس الصور المستخدمة في slider
+                              initialIndex: index,
+                            ),
                           ),
-                        ),
-                      );
-                    },
-                  ),
+                        );
+                      },
+                      child: Image.network(
+                        image,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  );
+                },
+              ),
 
             /// GRADIENT
             Container(
@@ -701,9 +857,10 @@ class _HeaderSliver extends StatelessWidget {
               child: Text(
                 property.title,
                 style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,),
+                  color: Colors.white,
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
 
@@ -737,8 +894,9 @@ class _HeaderSliver extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.9),
-                            shape: BoxShape.circle,),
+                          color: Colors.white.withOpacity(0.9),
+                          shape: BoxShape.circle,
+                        ),
                         child: const Icon(Icons.share),
                       ),
                     ],

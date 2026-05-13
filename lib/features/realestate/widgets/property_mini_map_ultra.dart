@@ -5,7 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 class PropertyMiniMapUltra extends StatelessWidget {
 
-  const PropertyMiniMapUltra({
+  const PropertyMiniMapUltra(SizedBox sizedBox, {
     required this.lat, required this.lng, required this.title, super.key,
   });
   final double lat;
