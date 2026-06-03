@@ -3,12 +3,11 @@ import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:market_world/features/entry/entry_gate_page.dart';
 import 'package:market_world/features/realestate/models/booking_model.dart';
-import 'package:market_world/features/realestate/models/property_model.dart';
 import 'package:market_world/features/realestate/pages/owner_bookings_page.dart';
 import 'package:market_world/features/realestate/pages/owner_properties_page.dart';
 import 'package:market_world/features/realestate/pages/property_form_page.dart';
-import 'package:market_world/features/realestate/pages/top_favorite_properties_page.dart';
 import 'package:market_world/features/realestate/services/booking_service.dart';
 import 'package:market_world/features/realestate/services/property_storage_service.dart';
 import 'package:market_world/features/storage/firebase_storage_service.dart';
@@ -127,22 +126,26 @@ class LandlordDashboardPage extends StatelessWidget {
                         Colors.teal,
                       ),
                     ),
-                    GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const TopFavoritePropertiesPage(),
-                          ),
-                        );
-                      },
-                      child: _StatCard(
-                        'المفضلات',
-                        data.favorites,
-                        Icons.favorite,
-                        Colors.pink,
-                      ),
-                    ),
+                    // ==================================================
+                    // TopFavoritePropertiesPage '🏆 أكثر العقارات حفظاً'
+                    // ==================================================
+
+                    // GestureDetector(
+                    //   onTap: () {
+                    //     Navigator.push(
+                    //       context,
+                    //       MaterialPageRoute(
+                    //         builder: (_) => const TopFavoritePropertiesPage(),
+                    //       ),
+                    //     );
+                    //   },
+                    //   child: _StatCard(
+                    //     'المفضلات',
+                    //     data.favorites,
+                    //     Icons.favorite,
+                    //     Colors.pink,
+                    //   ),
+                    // ),
                   ]),
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 2,
@@ -152,22 +155,22 @@ class LandlordDashboardPage extends StatelessWidget {
                   ),
                 ),
               ),
-              SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                sliver: SliverToBoxAdapter(
-                  child: _RevenueCard(totalBookings: data.totalBookings),
-                ),
-              ),
+              // SliverPadding(
+              //   padding: const EdgeInsets.symmetric(horizontal: 16),
+              //   sliver: SliverToBoxAdapter(
+              //     child: _RevenueCard(totalBookings: data.totalBookings),
+              //   ),
+              // ),
               SliverPadding(
                 padding: const EdgeInsets.all(16),
                 sliver: SliverToBoxAdapter(child: _QuickActions()),
               ),
-              SliverPadding(
-                padding: const EdgeInsets.all(16),
-                sliver: SliverToBoxAdapter(
-                  child: _TopFavorites(uid: uid),
-                ),
-              ),
+              // SliverPadding(
+              //   padding: const EdgeInsets.all(16),
+              //   sliver: SliverToBoxAdapter(
+              //     child: _TopFavorites(uid: uid),
+              //   ),
+              // ),
               const SliverToBoxAdapter(
                 child: SizedBox(height: 100),
               ),
@@ -195,21 +198,53 @@ class _DashboardHeader extends StatelessWidget {
           bottom: Radius.circular(30),
         ),
       ),
-      child: Row(
+      child: Stack(
         children: [
-          const CircleAvatar(
-            radius: 28,
-            backgroundColor: Colors.white,
-            child: Icon(Icons.person, color: Colors.indigo),
+          Row(
+            children: [
+              const CircleAvatar(
+                radius: 28,
+                backgroundColor: Colors.white,
+                child: Icon(Icons.person, color: Colors.indigo),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Text(
+                  'مرحباً ${user?.email ?? ''}',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Text(
-              'مرحباً ${user?.email ?? ''}',
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
+          Positioned(
+            top: 8,
+            right: 20,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(20),
+              onTap: () {
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const EntryGatePage(),
+                  ),
+                  (route) => false,
+                );
+              },
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Icon(
+                  Icons.home_rounded,
+                  color: Colors.white,
+                  size: 28,
+                ),
               ),
             ),
           ),
@@ -323,7 +358,7 @@ Stream<DashboardData> _dashboardStream(String uid) {
         totalBookings: bookings.length,
         pending: bookings.where((b) => b.status == 'pending').length,
         completed: bookings.where((b) => b.status == 'completed').length,
-        favorites: favorites,
+        // favorites: favorites,
       ),
     );
   }
@@ -359,53 +394,53 @@ class DashboardData {
     required this.totalBookings,
     required this.pending,
     required this.completed,
-    required this.favorites,
+    // required this.favorites,
   });
   final int propertiesCount;
   final int totalBookings;
   final int pending;
   final int completed;
-  final int favorites;
+  // final int favorites;
 }
 
 // 💰 3️⃣ بطاقة الأرباح
-class _RevenueCard extends StatelessWidget {
-  const _RevenueCard({required this.totalBookings});
-  final int totalBookings;
+// class _RevenueCard extends StatelessWidget {
+//   const _RevenueCard({required this.totalBookings});
+//   final int totalBookings;
 
-  @override
-  Widget build(BuildContext context) {
-    final revenue = totalBookings * 500; // مثال مؤقت
+//   @override
+//   Widget build(BuildContext context) {
+//     final revenue = totalBookings * 500; // مثال مؤقت
 
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.green.shade50,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.attach_money, size: 40, color: Colors.green),
-          const SizedBox(width: 16),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('إجمالي الأرباح'),
-              Text(
-                '$revenue ر.ق',
-                style: const TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.green,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
+//     return Container(
+//       padding: const EdgeInsets.all(20),
+//       decoration: BoxDecoration(
+//         color: Colors.green.shade50,
+//         borderRadius: BorderRadius.circular(20),
+//       ),
+//       child: Row(
+//         children: [
+//           const Icon(Icons.attach_money, size: 40, color: Colors.green),
+//           const SizedBox(width: 16),
+//           Column(
+//             crossAxisAlignment: CrossAxisAlignment.start,
+//             children: [
+//               const Text('إجمالي الأرباح'),
+//               Text(
+//                 '$revenue ر.ق',
+//                 style: const TextStyle(
+//                   fontSize: 22,
+//                   fontWeight: FontWeight.bold,
+//                   color: Colors.green,
+//                 ),
+//               ),
+//             ],
+//           ),
+//         ],
+//       ),
+//     );
+//   }
+// }
 
 // ⚡️ 6️⃣ إجراءات سريعة ⚡ 4️⃣ Quick Actions
 class _QuickActions extends StatelessWidget {
@@ -448,121 +483,121 @@ class _QuickActions extends StatelessWidget {
 }
 
 // 🏆 5️⃣ أفضل العقارات
-class _TopFavorites extends StatelessWidget {
-  const _TopFavorites({required this.uid});
-  final String uid;
+// class _TopFavorites extends StatelessWidget {
+//   const _TopFavorites({required this.uid});
+//   final String uid;
 
-  @override
-  Widget build(BuildContext context) {
-    final propertyService = PropertyStorageService();
-    final storage = FirebaseStorageService();
+//   @override
+//   Widget build(BuildContext context) {
+//     final propertyService = PropertyStorageService();
+//     final storage = FirebaseStorageService();
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          '🏆 أكثر العقارات حفظاً',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 12),
-        SizedBox(
-          height: 200,
-          child: StreamBuilder<List<PropertyModel>>(
-            stream: propertyService.streamTopFavoriteProperties(uid),
-            builder: (context, snap) {
-              if (!snap.hasData) {
-                return const Center(child: CircularProgressIndicator());
-              }
+//     return Column(
+//       crossAxisAlignment: CrossAxisAlignment.start,
+//       children: [
+//         const Text(
+//           '🏆 أكثر العقارات حفظاً',
+//           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+//         ),
+//         const SizedBox(height: 12),
+//         SizedBox(
+//           height: 200,
+//           child: StreamBuilder<List<PropertyModel>>(
+//             stream: propertyService.streamTopFavoriteProperties(uid),
+//             builder: (context, snap) {
+//               if (!snap.hasData) {
+//                 return const Center(child: CircularProgressIndicator());
+//               }
 
-              final properties = snap.data!;
-              if (properties.isEmpty) {
-                return const Center(child: Text('لا توجد مفضلات بعد'));
-              }
+//               final properties = snap.data!;
+//               if (properties.isEmpty) {
+//                 return const Center(child: Text('لا توجد مفضلات بعد'));
+//               }
 
-              return ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: properties.length,
-                itemBuilder: (context, index) {
-                  final p = properties[index];
+//               return ListView.builder(
+//                 scrollDirection: Axis.horizontal,
+//                 itemCount: properties.length,
+//                 itemBuilder: (context, index) {
+//                   final p = properties[index];
 
-                  return Container(
-                    width: 220,
-                    margin: const EdgeInsets.only(right: 12),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(16),
-                      child: Stack(
-                        children: [
-                          // 🖼️ الصورة
-                          Positioned.fill(
-                            child: p.mediaPaths.isNotEmpty
-                                ? Image.network(
-                                    p.mediaPaths.first,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (_, __, ___) => _placeholder(),
-                                    loadingBuilder: (_, child, progress) {
-                                      if (progress == null) {
-                                        return child;
-                                      }
+//                   return Container(
+//                     width: 220,
+//                     margin: const EdgeInsets.only(right: 12),
+//                     decoration: BoxDecoration(
+//                       borderRadius: BorderRadius.circular(16),
+//                     ),
+//                     child: ClipRRect(
+//                       borderRadius: BorderRadius.circular(16),
+//                       child: Stack(
+//                         children: [
+//                           // 🖼️ الصورة
+//                           Positioned.fill(
+//                             child: p.mediaPaths.isNotEmpty
+//                                 ? Image.network(
+//                                     p.mediaPaths.first,
+//                                     fit: BoxFit.cover,
+//                                     errorBuilder: (_, __, ___) => _placeholder(),
+//                                     loadingBuilder: (_, child, progress) {
+//                                       if (progress == null) {
+//                                         return child;
+//                                       }
 
-                                      return _placeholder();
-                                    },
-                                  )
-                                : _placeholder(),
-                          ),
+//                                       return _placeholder();
+//                                     },
+//                                   )
+//                                 : _placeholder(),
+//                           ),
 
-                          // 🌑 overlay
-                          Positioned.fill(
-                            child: Container(
-                              color: Colors.black.withOpacity(0.4),
-                            ),
-                          ),
+//                           // 🌑 overlay
+//                           Positioned.fill(
+//                             child: Container(
+//                               color: Colors.black.withOpacity(0.4),
+//                             ),
+//                           ),
 
-                          // 📄 النص
-                          Positioned(
-                            left: 12,
-                            right: 12,
-                            bottom: 12,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  p.title,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                Text(
-                                  '${p.price} ر.ق',
-                                  style: const TextStyle(color: Colors.white70),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
+//                           // 📄 النص
+//                           Positioned(
+//                             left: 12,
+//                             right: 12,
+//                             bottom: 12,
+//                             child: Column(
+//                               crossAxisAlignment: CrossAxisAlignment.start,
+//                               children: [
+//                                 Text(
+//                                   p.title,
+//                                   maxLines: 1,
+//                                   overflow: TextOverflow.ellipsis,
+//                                   style: const TextStyle(
+//                                     color: Colors.white,
+//                                     fontWeight: FontWeight.bold,
+//                                   ),
+//                                 ),
+//                                 Text(
+//                                   '${p.price} ر.ق',
+//                                   style: const TextStyle(color: Colors.white70),
+//                                 ),
+//                               ],
+//                             ),
+//                           ),
+//                         ],
+//                       ),
+//                     ),
+//                   );
+//                 },
+//               );
+//             },
+//           ),
+//         ),
+//       ],
+//     );
+//   }
 
-  Widget _placeholder() {
-    return Container(
-      color: Colors.grey[300],
-      child: const Center(
-        child: Icon(Icons.image, size: 40, color: Colors.grey),
-      ),
-    );
-  }
-}
+//   Widget _placeholder() {
+//     return Container(
+//       color: Colors.grey[300],
+//       child: const Center(
+//         child: Icon(Icons.image, size: 40, color: Colors.grey),
+//       ),
+//     );
+//   }
+// }

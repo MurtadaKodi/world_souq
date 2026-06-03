@@ -49,9 +49,8 @@ android {
     release {
         signingConfig signingConfigs.release
 
-        // minifyEnabled false     // 🔥 مهم جداً
-        shrinkResources false   // 🔥 مهم
-
+        minifyEnabled false
+        shrinkResources false
     }
 }
 }

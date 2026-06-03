@@ -204,37 +204,37 @@ class UltraPropertyCard extends StatelessWidget {
                               // 📞 CALL
                               // =========================
 
-                              _LuxuryActionButton(
-                                icon: Icons.call_rounded,
-                                onTap: onCall,
-                              ),
+                              // _LuxuryActionButton(
+                              //   icon: Icons.call_rounded,
+                              //   onTap: onCall,
+                              // ),
 
-                              const SizedBox(width: 10),
+                              // const SizedBox(width: 10),
 
                               // =========================
                               // 💬 WHATSAPP
                               // =========================
 
-                              _LuxuryActionButton(
-                                icon: Icons.chat_rounded,
-                                onTap: onWhatsApp,
-                              ),
+                              // _LuxuryActionButton(
+                              //   icon: Icons.chat_rounded,
+                              //   onTap: onWhatsApp,
+                              // ),
 
-                              const SizedBox(width: 10),
+                              // const SizedBox(width: 10),
 
                               // =========================
                               // ❤️ FAVORITE
                               // =========================
 
-                              _LuxuryActionButton(
-                                icon: isFavorite
-                                    ? Icons.favorite_rounded
-                                    : Icons.favorite_border_rounded,
-                                color: isFavorite ? Colors.redAccent : Colors.white,
-                                onTap: onFavorite,
-                              ),
+                              // _LuxuryActionButton(
+                              //   icon: isFavorite
+                              //       ? Icons.favorite_rounded
+                              //       : Icons.favorite_border_rounded,
+                              //   color: isFavorite ? Colors.redAccent : Colors.white,
+                              //   onTap: onFavorite,
+                              // ),
 
-                              const SizedBox(width: 12),
+                              // const SizedBox(width: 12),
 
                               // =========================
                               // 🔍 DETAILS
@@ -278,34 +278,38 @@ class UltraPropertyCard extends StatelessWidget {
   }
 }
 
-class _LuxuryActionButton extends StatelessWidget {
-  final IconData icon;
-  final VoidCallback? onTap;
-  final Color? color;
+  // ==================================================
+  //  class for ActionButton ❤️ FAVORITE, WHATSAPP, CALL
+  // ==================================================
 
-  const _LuxuryActionButton({
-    required this.icon,
-    this.onTap,
-    this.color,
-  });
+// class _LuxuryActionButton extends StatelessWidget {
+//   final IconData icon;
+//   final VoidCallback? onTap;
+//   final Color? color;
 
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 46,
-        height: 46,
-        child: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 250),
-          child: Icon(
-            icon,
-            key: ValueKey(icon),
-            color: color ?? Colors.white,
-            size: 20,
-          ),
-        ),
-      ),
-    );
-  }
-}
+//   const _LuxuryActionButton({
+//     required this.icon,
+//     this.onTap,
+//     this.color,
+//   });
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return GestureDetector(
+//       onTap: onTap,
+//       child: Container(
+//         width: 46,
+//         height: 46,
+//         child: AnimatedSwitcher(
+//           duration: const Duration(milliseconds: 250),
+//           child: Icon(
+//             icon,
+//             key: ValueKey(icon),
+//             color: color ?? Colors.white,
+//             size: 20,
+//           ),
+//         ),
+//       ),
+//     );
+//   }
+// }

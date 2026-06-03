@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:market_world/core/constants/enums.dart';
+import 'package:market_world/features/entry/entry_gate_page.dart';
 import 'package:market_world/features/realestate/models/property_model.dart';
 import 'package:market_world/features/realestate/pages/property_details_page.dart';
 import 'package:market_world/features/realestate/services/favorites_service.dart';
@@ -59,8 +60,11 @@ class _PropertiesMapPageState extends State<PropertiesMapPage> with TickerProvid
 
   @override
   void dispose() {
+    _debounce?.cancel();
+
     _floatingController.dispose();
     _bounceController.dispose();
+
     super.dispose();
   }
 
@@ -110,8 +114,6 @@ class _PropertiesMapPageState extends State<PropertiesMapPage> with TickerProvid
       ..repeat(reverse: true)
       ..addListener(() async {
         _floatingValue = Tween(begin: -4.0, end: 4.0).transform(_floatingController.value);
-
-        await _rebuild();
       });
 
     // =========================
@@ -136,8 +138,6 @@ class _PropertiesMapPageState extends State<PropertiesMapPage> with TickerProvid
             weight: 30,
           ),
         ]).transform(_bounceController.value);
-
-        await _rebuild();
       });
 
     _listenProperties();
@@ -145,8 +145,14 @@ class _PropertiesMapPageState extends State<PropertiesMapPage> with TickerProvid
 
   void _listenProperties() {
     _service.streamAllProperties().listen((data) async {
+      if (!mounted) return;
+
       _properties = data;
+
       await _rebuild();
+
+      if (!mounted) return;
+
       _handleInitialFocus();
     });
   }
@@ -202,6 +208,7 @@ class _PropertiesMapPageState extends State<PropertiesMapPage> with TickerProvid
         ),
       );
     }
+    if (!mounted) return;
 
     setState(() {
       _markers = {};
@@ -213,6 +220,7 @@ class _PropertiesMapPageState extends State<PropertiesMapPage> with TickerProvid
   // CLUSTERS + MARKERS (FINAL)
   // =========================
   Future<void> _buildClusters() async {
+    if (!mounted) return;
     final clusters = generateClusters(_visibleProperties(), _currentZoom);
 
     final markers = <Marker>{};
@@ -244,7 +252,7 @@ class _PropertiesMapPageState extends State<PropertiesMapPage> with TickerProvid
               onTap: () {
                 _controller?.animateCamera(
                   CameraUpdate.newCameraPosition(
-                    CameraPosition(target: cluster.position, zoom: _currentZoom + 2),
+                    CameraPosition(target: cluster.position, zoom: (_currentZoom + 4).clamp(0, 20)),
                   ),
                 );
               },
@@ -254,8 +262,6 @@ class _PropertiesMapPageState extends State<PropertiesMapPage> with TickerProvid
           continue;
         }
       }
-
-      print('Properties count: ${cluster.properties.length}');
       // =========================
       // 💰 SINGLE PROPERTY
       // =========================
@@ -278,6 +284,7 @@ class _PropertiesMapPageState extends State<PropertiesMapPage> with TickerProvid
           floatingOffset: property.id == _selectedId ? _floatingValue * 1.8 : _floatingValue,
           bounceScale: property.id == _selectedId ? _bounceValue : 1,
         );
+        _markerCache[cacheKey] = icon;
       }
 
       markers.add(
@@ -290,14 +297,41 @@ class _PropertiesMapPageState extends State<PropertiesMapPage> with TickerProvid
 
             setState(() {
               _selectedId = property.id;
-              _selectedProperty = property;
             });
+
+            showModalBottomSheet(
+              context: context,
+              isScrollControlled: true,
+              backgroundColor: Colors.transparent,
+              builder: (_) {
+                return UltraPropertyCard(
+                  property: property,
+                  onClose: () {
+                    Navigator.pop(context);
+                  },
+                  onDetails: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => PropertyDetailsFullScreen(
+                          property: property,
+                          onClose: () => Navigator.pop(context),
+                          onBook: () {},
+                        ),
+                      ),
+                    );
+                  },
+                  onCall: () async {},
+                  onWhatsApp: () async {},
+                  onFavorite: () async {},
+                  isFavorite: _favoriteIds.contains(property.id),
+                );
+              },
+            );
             _bounceController.forward(from: 0);
             await _controller?.animateCamera(
               CameraUpdate.newLatLngZoom(LatLng(property.lat!, property.lng!), 15),
             );
-
-            await _rebuild();
           },
         ),
       );
@@ -346,7 +380,7 @@ class _PropertiesMapPageState extends State<PropertiesMapPage> with TickerProvid
         CameraPosition(target: LatLng(property.lat!, property.lng!), zoom: 16),
       ),
     );
-
+    if (!mounted) return;
     setState(() {});
     await Future.delayed(const Duration(milliseconds: 600));
 
@@ -359,26 +393,31 @@ class _PropertiesMapPageState extends State<PropertiesMapPage> with TickerProvid
   // LOCATION
   // =========================
   Future<void> _goToCurrentLocation() async {
-    final pos = await Geolocator.getCurrentPosition();
-    _currentPosition = pos;
+    try {
+      LocationPermission permission = await Geolocator.checkPermission();
 
-    final latLng = LatLng(pos.latitude, pos.longitude);
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
 
-    setState(() {
-      _circles.add(
-        Circle(
-          circleId: const CircleId('radius'),
-          center: latLng,
-          radius: _getDynamicRadius(),
-          fillColor: Colors.blue.withOpacity(0.15),
-          strokeColor: Colors.blue,
-        ),
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        return;
+      }
+
+      final position = await Geolocator.getCurrentPosition();
+
+      final latLng = LatLng(
+        position.latitude,
+        position.longitude,
       );
-    });
 
-    _controller?.animateCamera(CameraUpdate.newLatLngZoom(latLng, 18));
-
-    await _rebuild();
+      _controller?.animateCamera(
+        CameraUpdate.newLatLngZoom(latLng, 15),
+      );
+    } catch (e) {
+      debugPrint('Location error: $e');
+    }
   }
 
   // =========================
@@ -394,8 +433,16 @@ class _PropertiesMapPageState extends State<PropertiesMapPage> with TickerProvid
           ? AppBar(
               title: isArabic ? const Text('الخريطة') : const Text('Map'),
               leading: IconButton(
-                icon: const Icon(Icons.arrow_back),
-                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.home_rounded, color: Colors.white, size: 28),
+                onPressed: () {
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const EntryGatePage(),
+                    ),
+                    (route) => false,
+                  );
+                },
               ),
             )
           : null,
@@ -412,15 +459,21 @@ class _PropertiesMapPageState extends State<PropertiesMapPage> with TickerProvid
               circles: _circles,
               onMapCreated: (controller) {
                 _controller = controller;
-                print('Map created ✅');
-                print('Properties count: ${_properties.length}');
               },
               onCameraMove: (pos) => _currentZoom = pos.zoom,
               onCameraIdle: () async {
                 _visibleRegion = await _controller?.getVisibleRegion();
 
                 _debounce?.cancel();
-                _debounce = Timer(const Duration(milliseconds: 300), _rebuild);
+
+                _debounce = Timer(
+                  const Duration(milliseconds: 700),
+                  () async {
+                    if (!mounted) return;
+
+                    await _rebuild();
+                  },
+                );
               },
             ),
           ),
@@ -428,84 +481,77 @@ class _PropertiesMapPageState extends State<PropertiesMapPage> with TickerProvid
           AnimatedOpacity(
             opacity: _selectedProperty != null ? 1 : 0,
             duration: const Duration(milliseconds: 350),
-            child: Container(
-              color: Colors.black.withOpacity(.38),
-            ),
+            // child: Container(
+            //   color: Colors.black.withOpacity(.38),
+            // ),
           ),
           // INFO CARD
-          if (_selectedProperty != null)
-            Positioned(
-              left: 16,
-              right: 16,
-              bottom: 90,
-              child: UltraPropertyCard(
-                key: ValueKey(
-  '${_selectedProperty!.id}_${_favoriteIds.contains(_selectedProperty!.id)}',
-),
-                onCall: () async {
-                  final phone =
-                      _selectedProperty?.ownerPhone.replaceAll(RegExp(r'[^0-9]'), '') ?? '';
+          // if (_selectedProperty != null)
+          //   UltraPropertyCard(
+          //     key: ValueKey(
+          //       '${_selectedProperty!.id}_${_favoriteIds.contains(_selectedProperty!.id)}',
+          //     ),
+          //     onCall: () async {
+          //       final phone = _selectedProperty?.ownerPhone.replaceAll(RegExp(r'[^0-9]'), '') ?? '';
 
-                  if (phone.isEmpty) return;
+          //       if (phone.isEmpty) return;
 
-                  await launchUrl(
-                    Uri.parse('tel:$phone'),
-                  );
-                },
-                onWhatsApp: () async {
-                  var phone = _selectedProperty?.ownerPhone.replaceAll(RegExp(r'[^0-9]'), '') ?? '';
+          //       await launchUrl(
+          //         Uri.parse('tel:$phone'),
+          //       );
+          //     },
+          //     onWhatsApp: () async {
+          //       var phone = _selectedProperty?.ownerPhone.replaceAll(RegExp(r'[^0-9]'), '') ?? '';
 
-                  if (phone.isEmpty) return;
+          //       if (phone.isEmpty) return;
 
-                  if (phone.length == 8) {
-                    phone = '974$phone';
-                  }
+          //       if (phone.length == 8) {
+          //         phone = '974$phone';
+          //       }
 
-                  final msg = Uri.encodeComponent(
-                    'مرحباً، أنا مهتم بالعقار: ${_selectedProperty?.title}',
-                  );
+          //       final msg = Uri.encodeComponent(
+          //         'مرحباً، أنا مهتم بالعقار: ${_selectedProperty?.title}',
+          //       );
 
-                  await launchUrl(
-                    Uri.parse(
-                      'https://wa.me/$phone?text=$msg',
-                    ),
-                    mode: LaunchMode.externalApplication,
-                  );
-                },
-                onFavorite: () async {
-                  final id = _selectedProperty!.id;
+          //       await launchUrl(
+          //         Uri.parse(
+          //           'https://wa.me/$phone?text=$msg',
+          //         ),
+          //         mode: LaunchMode.externalApplication,
+          //       );
+          //     },
+          //     onFavorite: () async {
+          //       final id = _selectedProperty!.id;
 
-                  if (_favoriteIds.contains(id)) {
-                    await _favoritesService.removeFromFavorites(id);
-                  } else {
-                    await _favoritesService.addToFavorites(id);
-                  }
-                },
-              
-                property: _selectedProperty!,
-                onClose: () {
-                  setState(() {
-                    _selectedProperty = null;
-                    _selectedId = null;
-                  });
-                  _rebuild();
-                },
-                onDetails: () {
-                  showModalBottomSheet(
-                    context: context,
-                    isScrollControlled: true,
-                    builder: (_) => PropertyDetailsFullScreen(
-                      property: _selectedProperty!,
-                      onClose: () => Navigator.pop(context),
-                      onBook: () {},
-                    ),
-                  );
-                },
-                isFavorite: _favoriteIds.contains(
-                  _selectedProperty!.id,
-                ),
-              ),
-            ),
+          //       if (_favoriteIds.contains(id)) {
+          //         await _favoritesService.removeFromFavorites(id);
+          //       } else {
+          //         await _favoritesService.addToFavorites(id);
+          //       }
+          //     },
+          //     property: _selectedProperty!,
+          //     onClose: () {
+          //       setState(() {
+          //         _selectedProperty = null;
+          //         _selectedId = null;
+          //       });
+          //       _rebuild();
+          //     },
+          //     onDetails: () {
+          //       showModalBottomSheet(
+          //         context: context,
+          //         isScrollControlled: true,
+          //         builder: (_) => PropertyDetailsFullScreen(
+          //           property: _selectedProperty!,
+          //           onClose: () => Navigator.pop(context),
+          //           onBook: () {},
+          //         ),
+          //       );
+          //     },
+          //     isFavorite: _favoriteIds.contains(
+          //       _selectedProperty!.id,
+          //     ),
+          //   ),
           Positioned(
             bottom: 25,
             left: 10,
@@ -686,13 +732,13 @@ class _MarkerInfoCard extends StatelessWidget {
                             color: Colors.green.withOpacity(0.3),
                             width: 1.5,
                           ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.1), // Shadow ناعم بدل الأخضر
-                              blurRadius: 6,
-                              offset: Offset(0, 3),
-                            ),
-                          ],
+                          // boxShadow: [
+                          //   BoxShadow(
+                          //     color: Colors.black.withOpacity(0.1), // Shadow ناعم بدل الأخضر
+                          //     blurRadius: 6,
+                          //     offset: Offset(0, 3),
+                          //   ),
+                          // ],
                         ),
                         child: Padding(
                           padding: const EdgeInsets.all(10),

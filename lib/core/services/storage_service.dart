@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
@@ -19,18 +18,20 @@ class StorageService {
           .ref()
           .child('properties/$propertyId/$safeFileName');
 
-      UploadTask uploadTask;
+      // ✅ يعمل على Web + Android + iOS
+      final bytes = await file.readAsBytes();
 
-      if (kIsWeb) {
-        final bytes = await file.readAsBytes();
-        uploadTask = ref.putData(bytes);
-      } else {
-        uploadTask = ref.putFile(File(file.path));
-      }
+      final uploadTask = ref.putData(
+        bytes,
+        SettableMetadata(
+          contentType: 'image/jpeg',
+        ),
+      );
 
       await uploadTask;
 
       final downloadUrl = await ref.getDownloadURL();
+
       return downloadUrl;
     } catch (e) {
       debugPrint('🔥 Upload Error: $e');

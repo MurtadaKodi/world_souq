@@ -6,13 +6,18 @@ class PropertyStorageService {
 
   String newPropertyId() => _db.collection('properties').doc().id;
 
-  // Future<void> createProperty(PropertyModel p) {
-  //   final data = p.toJson();
-  //   data['searchKeywords'] = buildSearchKeywords(p);
-  //   data['createdAt'] = FieldValue.serverTimestamp();
+  Future<void> createProperty(PropertyModel p) async {
+  final data = p.toJson();
 
-  //   return _db.collection('properties').doc(p.id).set(data);
-  // }
+  data['searchKeywords'] = buildSearchKeywords(p);
+
+  data['createdAt'] = FieldValue.serverTimestamp();
+
+  await _db
+      .collection('properties')
+      .doc(p.id)
+      .set(data);
+}
 
   Future<void> updateProperty(PropertyModel p) {
     final data = p.toJson();
@@ -149,5 +154,5 @@ class PropertyStorageService {
 
   streamFavoritesOnMyProperties(String uid) {}
 
-  Future<void> createProperty(PropertyModel property) async {}
+
 }

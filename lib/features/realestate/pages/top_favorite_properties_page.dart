@@ -1,177 +1,177 @@
-import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+// import 'package:flutter/material.dart';
+// import 'package:firebase_auth/firebase_auth.dart';
 
-import '../models/property_model.dart';
-import '../services/property_storage_service.dart';
+// import '../models/property_model.dart';
+// import '../services/property_storage_service.dart';
 
-class TopFavoritePropertiesPage extends StatelessWidget {
-  const TopFavoritePropertiesPage({super.key});
+// class TopFavoritePropertiesPage extends StatelessWidget {
+//   const TopFavoritePropertiesPage({super.key});
 
-  @override
-  Widget build(BuildContext context) {
-    final uid =
-        FirebaseAuth.instance.currentUser?.uid;
+//   @override
+//   Widget build(BuildContext context) {
+//     final uid =
+//         FirebaseAuth.instance.currentUser?.uid;
 
-    if (uid == null) {
-      return const Scaffold(
-        body: Center(
-          child: Text('يجب تسجيل الدخول'),
-        ),
-      );
-    }
+//     if (uid == null) {
+//       return const Scaffold(
+//         body: Center(
+//           child: Text('يجب تسجيل الدخول'),
+//         ),
+//       );
+//     }
 
-    final propertyService =
-        PropertyStorageService();
+//     final propertyService =
+//         PropertyStorageService();
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          '🏆 أكثر العقارات حفظاً',
-        ),
-      ),
+//     return Scaffold(
+//       appBar: AppBar(
+//         title: const Text(
+//           '🏆 أكثر العقارات حفظاً',
+//         ),
+//       ),
 
-      body: StreamBuilder<List<PropertyModel>>(
-        stream: propertyService
-            .streamTopFavoriteProperties(uid),
+//       body: StreamBuilder<List<PropertyModel>>(
+//         stream: propertyService
+//             .streamTopFavoriteProperties(uid),
 
-        builder: (context, snapshot) {
+//         builder: (context, snapshot) {
 
-          if (!snapshot.hasData) {
-            return const Center(
-              child:
-                  CircularProgressIndicator(),
-            );
-          }
+//           if (!snapshot.hasData) {
+//             return const Center(
+//               child:
+//                   CircularProgressIndicator(),
+//             );
+//           }
 
-          final properties =
-              snapshot.data!;
+//           final properties =
+//               snapshot.data!;
 
-          if (properties.isEmpty) {
-            return const Center(
-              child: Text(
-                'لا توجد عقارات محفوظة بعد',
-              ),
-            );
-          }
+//           if (properties.isEmpty) {
+//             return const Center(
+//               child: Text(
+//                 'لا توجد عقارات محفوظة بعد',
+//               ),
+//             );
+//           }
 
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: properties.length,
+//           return ListView.builder(
+//             padding: const EdgeInsets.all(16),
+//             itemCount: properties.length,
 
-            itemBuilder: (context, index) {
+//             itemBuilder: (context, index) {
 
-              final p = properties[index];
+//               final p = properties[index];
 
-              return Card(
-                margin:
-                    const EdgeInsets.only(
-                  bottom: 16,
-                ),
+//               return Card(
+//                 margin:
+//                     const EdgeInsets.only(
+//                   bottom: 16,
+//                 ),
 
-                shape:
-                    RoundedRectangleBorder(
-                  borderRadius:
-                      BorderRadius.circular(
-                    18,
-                  ),
-                ),
+//                 shape:
+//                     RoundedRectangleBorder(
+//                   borderRadius:
+//                       BorderRadius.circular(
+//                     18,
+//                   ),
+//                 ),
 
-                child: ListTile(
-                  contentPadding:
-                      const EdgeInsets.all(12),
+//                 child: ListTile(
+//                   contentPadding:
+//                       const EdgeInsets.all(12),
 
-                  leading:
-                      p.mediaPaths.isNotEmpty
-                          ? ClipRRect(
-                              borderRadius:
-                                  BorderRadius
-                                      .circular(
-                                12,
-                              ),
+//                   leading:
+//                       p.mediaPaths.isNotEmpty
+//                           ? ClipRRect(
+//                               borderRadius:
+//                                   BorderRadius
+//                                       .circular(
+//                                 12,
+//                               ),
 
-                              child: Image.network(
-                                p.mediaPaths
-                                    .first,
+//                               child: Image.network(
+//                                 p.mediaPaths
+//                                     .first,
 
-                                width: 70,
-                                height: 70,
-                                fit: BoxFit.cover,
-                              ),
-                            )
-                          : Container(
-                              width: 70,
-                              height: 70,
+//                                 width: 70,
+//                                 height: 70,
+//                                 fit: BoxFit.cover,
+//                               ),
+//                             )
+//                           : Container(
+//                               width: 70,
+//                               height: 70,
 
-                              decoration:
-                                  BoxDecoration(
-                                color:
-                                    Colors.grey
-                                        .shade300,
+//                               decoration:
+//                                   BoxDecoration(
+//                                 color:
+//                                     Colors.grey
+//                                         .shade300,
 
-                                borderRadius:
-                                    BorderRadius
-                                        .circular(
-                                  12,
-                                ),
-                              ),
+//                                 borderRadius:
+//                                     BorderRadius
+//                                         .circular(
+//                                   12,
+//                                 ),
+//                               ),
 
-                              child: const Icon(
-                                Icons.home,
-                              ),
-                            ),
+//                               child: const Icon(
+//                                 Icons.home,
+//                               ),
+//                             ),
 
-                  title: Text(
-                    p.title,
-                    maxLines: 1,
-                    overflow:
-                        TextOverflow.ellipsis,
-                  ),
+//                   title: Text(
+//                     p.title,
+//                     maxLines: 1,
+//                     overflow:
+//                         TextOverflow.ellipsis,
+//                   ),
 
-                  subtitle: Column(
-                    crossAxisAlignment:
-                        CrossAxisAlignment
-                            .start,
+//                   subtitle: Column(
+//                     crossAxisAlignment:
+//                         CrossAxisAlignment
+//                             .start,
 
-                    children: [
+//                     children: [
 
-                      const SizedBox(
-                        height: 6,
-                      ),
+//                       const SizedBox(
+//                         height: 6,
+//                       ),
 
-                      Text(
-                        '${p.price} ${p.currency}',
-                      ),
+//                       Text(
+//                         '${p.price} ${p.currency}',
+//                       ),
 
-                      const SizedBox(
-                        height: 4,
-                      ),
+//                       const SizedBox(
+//                         height: 4,
+//                       ),
 
-                      Row(
-                        children: [
+//                       Row(
+//                         children: [
 
-                          const Icon(
-                            Icons.favorite,
-                            color: Colors.pink,
-                            size: 18,
-                          ),
+//                           const Icon(
+//                             Icons.favorite,
+//                             color: Colors.pink,
+//                             size: 18,
+//                           ),
 
-                          const SizedBox(
-                            width: 4,
-                          ),
+//                           const SizedBox(
+//                             width: 4,
+//                           ),
 
-                          Text(
-                            '${p.favoritesCount}',
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          );
-        },
-      ),
-    );
-  }
-}
+//                           Text(
+//                             '${p.favoritesCount}',
+//                           ),
+//                         ],
+//                       ),
+//                     ],
+//                   ),
+//                 ),
+//               );
+//             },
+//           );
+//         },
+//       ),
+//     );
+//   }
+// }

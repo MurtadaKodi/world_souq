@@ -1,15 +1,15 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+// import 'package:cloud_firestore/cloud_firestore.dart';
+// import 'package:firebase_auth/firebase_auth.dart';
 
-class AdminService {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
+// class AdminService {
+//   final FirebaseAuth _auth = FirebaseAuth.instance;
+//   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
-  Future<bool> isAdmin() async {
-    final user = _auth.currentUser;
-    if (user == null) return false;
+//   Future<bool> isAdmin() async {
+//     final user = _auth.currentUser;
+//     if (user == null) return false;
 
-    final doc = await _db.collection('admins').doc(user.uid).get();
-    return doc.exists && doc.data()?['active'] == true;
-  }
-}
+//     final doc = await _db.collection('admins').doc(user.uid).get();
+//     return doc.exists && doc.data()?['active'] == true;
+//   }
+// }

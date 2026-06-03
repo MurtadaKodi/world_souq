@@ -1,3 +1,3 @@
-class AppConfig {
-  static const bool isDemo = true;
-}
+// class AppConfig {
+//   static const bool isDemo = true;
+// }

@@ -2,12 +2,12 @@
 
 import 'dart:async';
 import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:market_world/core/constants/enums.dart';
 import 'package:market_world/core/providers/language_provider.dart';
 import 'package:market_world/features/auth/login_page.dart';
+import 'package:market_world/features/realestate/navigation/tenant_bottom_nav.dart';
 import 'package:provider/provider.dart';
 
 /// ================= Landing Page =================
@@ -45,23 +45,25 @@ class _LandingPageState extends State<LandingPage> {
     super.dispose();
   }
 
-  void _go(BuildContext context, UserRole role) {
-    Navigator.of(context).push(
-      PageRouteBuilder(
-        transitionDuration: const Duration(milliseconds: 500),
-        reverseTransitionDuration: const Duration(milliseconds: 400),
-        pageBuilder: (_, animation, __) {
-          return FadeTransition(
-            opacity: CurvedAnimation(
-              parent: animation,
-              curve: Curves.easeOutCubic,
-            ),
-            child: LoginPage(role: role),
-          );
-        },
-      ),
-    );
-  }
+ void _go(BuildContext context, UserRole role) {
+  Navigator.of(context).pushReplacement(
+    PageRouteBuilder(
+      transitionDuration: const Duration(milliseconds: 500),
+      reverseTransitionDuration: const Duration(milliseconds: 400),
+      pageBuilder: (_, animation, __) {
+        return FadeTransition(
+          opacity: CurvedAnimation(
+            parent: animation,
+            curve: Curves.easeOutCubic,
+          ),
+          child: role == UserRole.tenant
+              ? const TenantBottomNav()
+              : LoginPage(role: role),
+        );
+      },
+    ),
+  );
+}
 
   Widget buildDateTime(BuildContext context, bool isArabic) {
     final dateText = isArabic
@@ -99,7 +101,7 @@ class _LandingPageState extends State<LandingPage> {
     final items = [
       {
         'title': isArabic ? 'مستأجر' : 'Tenant',
-        'subtitle': isArabic ? 'ابحث واحجز زيارة' : 'Find & book future property',
+        'subtitle': isArabic ? 'ابحث واحجز زيارة' : 'Find & book future property ....',
         'icon': Icons.key_outlined,
         'size': 40.0,
         'role': UserRole.tenant,
@@ -107,7 +109,7 @@ class _LandingPageState extends State<LandingPage> {
       },
       {
         'title': isArabic ? 'مؤجّر' : 'Landlord',
-        'subtitle': isArabic ? 'أضف وأدر عقاراتك' : 'Add & manage properties',
+        'subtitle': isArabic ? 'أضف وأدر عقاراتك' : 'Add & manage your properties',
         'icon': Icons.home_work_outlined,
         'size': 40.0,
         'role': UserRole.landlord,
@@ -163,7 +165,7 @@ class _LandingPageState extends State<LandingPage> {
                       const SizedBox(height: 40),
                       TweenAnimationBuilder<double>(
                         duration: const Duration(milliseconds: 800),
-                        tween: Tween(begin: 0, end: 1),
+                        tween: Tween(begin: 0.0, end: 1.0),
                         builder: (context, value, child) {
                           return Transform.translate(
                             offset: Offset(0, 40 * (1 - value)),
@@ -251,11 +253,11 @@ class _LuxuryRoleCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return TweenAnimationBuilder(
       duration: Duration(milliseconds: 600 + delay),
-      tween: Tween(begin: 0, end: 1.0),
+      tween: Tween(begin: 0.0, end: 1.0),
       curve: Curves.easeOut,
       builder: (context, value, child) {
         return Transform.scale(
-          scale: value as double,
+          scale: value,
           child: Opacity(
             opacity: value,
             child: child,

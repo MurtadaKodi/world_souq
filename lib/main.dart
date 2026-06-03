@@ -1,4 +1,5 @@
-import 'dart:io';
+
+// ignore_for_file: dead_code
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -34,25 +35,13 @@ void main() async {
 // =========================
 // 🔥 Firebase Emulator Setup
 // =========================
-  const useEmulator = kDebugMode;
+const useEmulator = false;
 
-  if (useEmulator) {
-    // ignore: unused_local_variable
-    var host = 'localhost';
-
-    // Android Emulator fix
-    if (!kIsWeb && Platform.isAndroid) {
-      host = '10.0.2.2';
-    }
-
-    // FirebaseFirestore.instance.useFirestoreEmulator(host, 8080);
-    // FirebaseStorage.instance.useStorageEmulator(host, 9199);
-
-    debugPrint('🔥 Firebase Emulator Connected');
-    debugPrint(
-      useEmulator ? '🧪 Running on Emulator' : '🚀 Running on Production',
-    );
-  }
+if (useEmulator) {
+  debugPrint('🔥 Firebase Emulator Connected');
+} else {
+  debugPrint('🚀 Running on Production Firebase');
+}
 
   // =========================
   // 🔔 Notifications

@@ -6,9 +6,9 @@ import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 
 class LocationPickerMap extends StatefulWidget {
-
   const LocationPickerMap({
-    required this.onPicked, super.key,
+    required this.onPicked,
+    super.key,
     this.initialLat,
     this.initialLng,
   });
@@ -40,8 +40,7 @@ class _LocationPickerMapState extends State<LocationPickerMap> {
   // 📍 GPS
   Future<void> _goToMyLocation() async {
     final permission = await Geolocator.requestPermission();
-    if (permission == LocationPermission.denied ||
-        permission == LocationPermission.deniedForever) {
+    if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
       return;
     }
 
@@ -92,8 +91,7 @@ class _LocationPickerMapState extends State<LocationPickerMap> {
                 ),
                 children: [
                   TileLayer(
-                    urlTemplate:
-                        'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                    urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                     userAgentPackageName: 'com.marketworld.app',
                   ),
                   if (selected != null)
@@ -130,82 +128,81 @@ class _LocationPickerMapState extends State<LocationPickerMap> {
                       icon: Icons.add,
                       onTap: () {
                         zoom++;
-                                                    _controller.move(
-                              selected ?? _doha,
-                              zoom,
-                            );
-                          },
-                          tooltip: 'تكبير',
-                        ),
-                        const SizedBox(height: 8),
-                        _mapBtn(
-                          icon: Icons.remove,
-                          onTap: () {
-                            zoom--;
-                            _controller.move(
-                              selected ?? _doha,
-                              zoom,
-                            );
-                          },
-                          tooltip: 'تصغير',
-                        ),
-                        const SizedBox(height: 8),
-                        _mapBtn(
-                          icon: Icons.center_focus_strong,
-                          onTap: _recenter,
-                          tooltip: 'إعادة التمركز',
-                        ),
-                      ],
+                        _controller.move(
+                          selected ?? _doha,
+                          zoom,
+                        );
+                      },
+                      tooltip: 'تكبير',
                     ),
-                  ),
-
-                  // 📝 Hint
-                  Positioned(
-                    bottom: 10,
-                    left: 10,
-                    right: 10,
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.6),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Text(
-                        'اضغط على الخريطة لتحديد موقع العقار',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(color: Colors.white),
-                      ),
+                    const SizedBox(height: 8),
+                    _mapBtn(
+                      icon: Icons.remove,
+                      onTap: () {
+                        zoom--;
+                        _controller.move(
+                          selected ?? _doha,
+                          zoom,
+                        );
+                      },
+                      tooltip: 'تصغير',
                     ),
+                    const SizedBox(height: 8),
+                    _mapBtn(
+                      icon: Icons.center_focus_strong,
+                      onTap: _recenter,
+                      tooltip: 'إعادة التمركز',
+                    ),
+                  ],
+                ),
+              ),
+
+              // 📝 Hint
+              Positioned(
+                bottom: 10,
+                left: 10,
+                right: 10,
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.transparent,
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                ],
+                  child: const Text(
+                        '',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.transparent),
+                  ),
+                ),
               ),
-            ),
+            ],
           ),
-        );
-      }
+        ),
+      ),
+    );
+  }
 
-      Widget _mapBtn({
-        required IconData icon,
-        required VoidCallback onTap,
-        required String tooltip,
-      }) {
-        return Tooltip(
-          message: tooltip,
-          child: Material(
-            color: Colors.white,
-            shape: const CircleBorder(),
-            elevation: 4,
-            child: InkWell(
-              customBorder: const CircleBorder(),
-              onTap: onTap,
-              child: Padding(
-                padding: const EdgeInsets.all(8),
-                child: Icon(icon, size: 22),
-              ),
-            ),
+  Widget _mapBtn({
+    
+    required IconData icon,
+    required VoidCallback onTap,
+    required String tooltip,
+  }) {
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: Colors.black12,
+        shape: const CircleBorder(),
+        elevation: 4,
+        child: InkWell(
+          customBorder: const CircleBorder(),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(8),
+            child: Icon(icon, size: 22),
           ),
-        );
-      }
-    }
-
-
+        ),
+      ),
+    );
+  }
+}

@@ -9,6 +9,7 @@ class GlassButton extends StatelessWidget {
     super.key,
     this.primary = true, required int width,
   });
+  
   final String text;
   final VoidCallback onPressed;
   final bool primary;

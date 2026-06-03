@@ -2,6 +2,8 @@
 
 import 'package:flutter/material.dart';
 import 'package:market_world/features/entry/entry_gate_page.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:market_world/features/realestate/navigation/landlord_bottom_nav.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -46,20 +48,29 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   Future<void> _goNext() async {
-    await Future.delayed(const Duration(seconds: 3));
+  await Future.delayed(const Duration(seconds: 3));
 
-    if (!mounted) return;
+  if (!mounted) return;
 
+  final user = FirebaseAuth.instance.currentUser;
+
+  if (user != null) {
     Navigator.pushReplacement(
       context,
-      PageRouteBuilder(
-        pageBuilder: (_, __, ___) => const EntryGatePage(),
-        transitionsBuilder: (_, anim, __, child) {
-          return FadeTransition(opacity: anim, child: child);
-        },
+      MaterialPageRoute(
+        builder: (_) => const LandlordBottomNav(),
       ),
     );
+    return;
   }
+
+  Navigator.pushReplacement(
+    context,
+    MaterialPageRoute(
+      builder: (_) => const EntryGatePage(),
+    ),
+  );
+}
 
   @override
   void dispose() {
@@ -118,7 +129,7 @@ Widget build(BuildContext context) {
                   'البوابة العقارية الذكية',
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    color: Colors.white70,
+                    color: Colors.white,
                     fontSize: 14,
                   ),
                 ),

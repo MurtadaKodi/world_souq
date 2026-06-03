@@ -1,16 +1,14 @@
 // ignore_for_file: deprecated_member_use
 
-import 'dart:io';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:market_world/features/realestate/models/property_model.dart';
 import 'package:market_world/features/realestate/services/property_storage_service.dart';
 import 'package:market_world/features/realestate/widgets/location_picker_map.dart';
 import 'package:market_world/features/storage/firebase_storage_service.dart';
+import 'package:market_world/shared/widgets/adaptive_image.dart';
 
 String? address;
 bool loadingAddress = false;
@@ -127,54 +125,96 @@ class _PropertyFormPageState extends State<PropertyFormPage> {
     setState(() => saving = true);
 
     try {
-      final uid = FirebaseAuth.instance.currentUser!.uid;
-      final propertyId = widget.property?.id ?? propertyService.newPropertyId();
+      final user = FirebaseAuth.instance.currentUser;
 
+      if (user == null) {
+        _show('يجب تسجيل الدخول أولاً');
+        return;
+      }
+
+      if (lat == null || lng == null) {
+        _show('حدد موقع العقار على الخريطة');
+        return;
+      }
+
+      final uid = user.uid;
+      final propertyId = widget.property?.id ?? propertyService.newPropertyId();
+      debugPrint('STEP 1');
       final uploadedPaths = <String>[];
 
       for (final img in pickedImages) {
+        debugPrint('IMAGE PATH: ${img.path}');
+
         final path = await storageService.uploadImage(
-          localPathOrUrl: img.path,
+          file: img,
           folder: 'properties/$propertyId',
           fileName: img.name,
         );
-        uploadedPaths.add(path);
+
+        debugPrint('UPLOAD RESULT: $path');
+
+        if (path.isNotEmpty) {
+          uploadedPaths.add(path);
+        }
       }
 
       final keywords = buildSearchKeywords(titleCtrl.text);
-
+      debugPrint('FINAL IMAGES: $uploadedPaths');
+      debugPrint('STEP 2');
       final property = PropertyModel(
         id: propertyId,
         ownerId: uid,
         title: titleCtrl.text.trim(),
         description: descCtrl.text.trim(),
-        price: double.parse(priceCtrl.text),
+        price: double.tryParse(
+              priceCtrl.text.replaceAll(',', ''),
+            ) ??
+            0,
         type: type,
         purpose: purpose,
         city: cityCtrl.text.trim(),
         area: areaCtrl.text.trim(),
-        mediaPaths: widget.property?.mediaPaths ?? uploadedPaths,
-        mainImage: uploadedPaths.isNotEmpty ? uploadedPaths.first : widget.property?.mainImage,
+        mediaPaths: uploadedPaths.isNotEmpty ? uploadedPaths : (widget.property?.mediaPaths ?? []),
+        mainImage:
+            uploadedPaths.isNotEmpty ? uploadedPaths.first : (widget.property?.mainImage ?? ''),
         searchKeywords: keywords,
-        createdAt: widget.property?.createdAt,
+        createdAt: widget.property?.createdAt ?? Timestamp.now(),
         updatedAt: Timestamp.now(),
         lat: lat,
         lng: lng,
-        favoritesCount: 0,
+        favoritesCount: widget.property?.favoritesCount ?? 0,
         ownerName: ownerNameCtrl.text.trim(),
         ownerPhone: ownerPhoneCtrl.text.trim(),
       );
 
       if (widget.property == null) {
+        debugPrint('STEP 4');
         await propertyService.createProperty(property);
+        debugPrint('STEP 5 SUCCESS');
       } else {
+        debugPrint('STEP 4 UPDATE');
         await propertyService.updateProperty(property);
+        debugPrint('STEP 5 UPDATE SUCCESS');
       }
 
       if (!mounted) return;
+      _show(
+        Localizations.localeOf(context).languageCode == 'ar'
+            ? widget.property == null
+                ? '✅ تم إضافة العقار بنجاح'
+                : '✅ تم تحديث العقار بنجاح'
+            : widget.property == null
+                ? '✅ Property added successfully'
+                : '✅ Property updated successfully',
+      );
+      await Future.delayed(
+        const Duration(milliseconds: 700),
+      );
       Navigator.pop(context, true);
-      // ignore: unused_catch_stack
     } catch (e, stack) {
+      debugPrint('PROPERTY SAVE ERROR: $e');
+      debugPrintStack(stackTrace: stack);
+
       _show('Error: $e');
     } finally {
       if (mounted) setState(() => saving = false);
@@ -373,19 +413,17 @@ class _PropertyFormPageState extends State<PropertyFormPage> {
         runSpacing: 8,
         children: [
           ...pickedImages.map(
-            (x) => kIsWeb
-                ? Image.network(
-                    x.path,
-                    width: 80,
-                    height: 80,
-                    fit: BoxFit.cover,
-                  )
-                : Image.file(
-                    File(x.path),
-                    width: 80,
-                    height: 80,
-                    fit: BoxFit.cover,
-                  ),
+            (x) => ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: SizedBox(
+                width: 80,
+                height: 80,
+                child: AdaptiveImage(
+                  path: x.path,
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
           ),
           GestureDetector(
             onTap: _pickImages,
@@ -409,7 +447,7 @@ class _PropertyFormPageState extends State<PropertyFormPage> {
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Container(
-          height: 260,
+          height: 400,
           margin: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(20),

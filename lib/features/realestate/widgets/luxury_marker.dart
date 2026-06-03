@@ -24,7 +24,7 @@ Future<BitmapDescriptor> createLuxuryMarker({
   const height = 120.0;
 
   final scale =
-    ((zoom / 14.5).clamp(0.72, 1.18)) * bounceScale;
+    ((zoom / 15).clamp(0.75, 1.18)) * bounceScale;
 
   // =========================
   // Dynamic Colors
